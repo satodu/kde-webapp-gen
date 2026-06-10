@@ -34,7 +34,11 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 ### Arch Linux (AUR)
 If you are running Arch Linux or any of its derivatives (such as Manjaro or EndeavourOS), you can install the package directly from the AUR using your favorite helper (like `yay` or `paru`):
 ```bash
+# Using yay
 yay -S kde-webapp-manager-git
+
+# Using paru
+paru -S kde-webapp-manager-git
 ```
 
 ### Other Distributions (Manual Install)
