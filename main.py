@@ -160,7 +160,7 @@ def get_browser_wmclass_prefix(browser_cmd):
         
     return main_prefix, sub_prefix
 
-def add_kwin_rule(app_name, url, browser_cmd, desktop_file_basename):
+def add_kwin_rule(app_name, url, browser_cmd, desktop_file_basename, width=None, height=None):
     """Automatically adds or updates a KDE KWin window rule to force association
     between the browser window (detected via Wayland app-id/WM_CLASS) and the desktop shortcut file.
     """
@@ -203,7 +203,7 @@ def add_kwin_rule(app_name, url, browser_cmd, desktop_file_basename):
     wmclass = f"{sub_prefix}-{domain}__{path_clean}-Default"
     full_wmclass = f"{main_prefix} {wmclass}"
     
-    config[rule_uuid] = {
+    rule_data = {
         'Description': f'Window settings for {app_name} webapp',
         'desktopfile': desktop_file_basename,
         'desktopfilerule': '2', # 2 means "Force" (Forçar)
@@ -212,6 +212,12 @@ def add_kwin_rule(app_name, url, browser_cmd, desktop_file_basename):
         'wmclasscomplete': 'true',
         'wmclassmatch': '1' # 1 means "Exact match"
     }
+    
+    if width and height:
+        rule_data['size'] = f"{width},{height}"
+        rule_data['sizerule'] = '3' # 3 means "Apply Initially"
+        
+    config[rule_uuid] = rule_data
     
     if 'General' not in config:
         config['General'] = {'count': '0', 'rules': ''}
@@ -1022,10 +1028,18 @@ class MainWindow(QMainWindow):
         self.list_widget.clearSelection()
         self.current_filepath = None
         self.custom_icon_path = None
-        self.is_modifying_userdata = False
-        self.is_modifying_class = False
         
         self.header_title.setText("Create New Webapp")
+        
+        # Block signals temporarily to prevent setting flags/previews during form reset
+        self.input_name.blockSignals(True)
+        self.input_url.blockSignals(True)
+        self.combo_browser.blockSignals(True)
+        self.spin_width.blockSignals(True)
+        self.spin_height.blockSignals(True)
+        self.input_icon.blockSignals(True)
+        self.input_userdata.blockSignals(True)
+        self.input_class.blockSignals(True)
         
         self.input_name.setText("")
         self.input_url.setText("")
@@ -1038,6 +1052,18 @@ class MainWindow(QMainWindow):
         if self.combo_browser.count() > 0:
             self.combo_browser.setCurrentIndex(0)
             
+        self.is_modifying_userdata = False
+        self.is_modifying_class = False
+        
+        self.input_name.blockSignals(False)
+        self.input_url.blockSignals(False)
+        self.combo_browser.blockSignals(False)
+        self.spin_width.blockSignals(False)
+        self.spin_height.blockSignals(False)
+        self.input_icon.blockSignals(False)
+        self.input_userdata.blockSignals(False)
+        self.input_class.blockSignals(False)
+        
         self.update_icon_preview("applications-internet")
         self.update_command_preview()
         
@@ -1050,13 +1076,17 @@ class MainWindow(QMainWindow):
         slug = re.sub(r'[^a-zA-Z0-9]', '_', name.lower())
         
         if not self.is_modifying_userdata:
+            self.input_userdata.blockSignals(True)
             if slug:
                 self.input_userdata.setText(os.path.join(DEFAULT_USER_DATA_BASE, slug))
             else:
                 self.input_userdata.setText("")
+            self.input_userdata.blockSignals(False)
                 
         if not self.is_modifying_class:
+            self.input_class.blockSignals(True)
             self.input_class.setText(slug)
+            self.input_class.blockSignals(False)
             
         # Also auto-update icon name if it was a default placeholder
         if self.input_icon.text() in ["applications-internet", ""] and slug:
@@ -1248,7 +1278,7 @@ class MainWindow(QMainWindow):
             
             # Auto-generate KWin window rule to force correct icon on Wayland
             desktop_file_basename = os.path.splitext(os.path.basename(filepath))[0]
-            add_kwin_rule(name, url, browser_cmd, desktop_file_basename)
+            add_kwin_rule(name, url, browser_cmd, desktop_file_basename, width, height)
             
             QMessageBox.information(self, "Success", f"Webapp '{name}' saved successfully!")
             
