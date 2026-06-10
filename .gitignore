@@ -17,3 +17,9 @@ venv/
 
 # Local build / package files
 aur-package/
+build/
+build_env/
+dist/
+AppDir/
+*.AppImage
+appimagetool-x86_64.AppImage
