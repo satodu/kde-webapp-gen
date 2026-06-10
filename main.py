@@ -320,6 +320,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("KDE Webapp Manager")
         self.resize(900, 650)
         
+        # Set window icon
+        app_icon = QIcon.fromTheme("kde-webapp-manager")
+        if app_icon.isNull():
+            local_logo = os.path.join(os.path.dirname(__file__), "images", "kde-webapp-gen-icon-logo.png")
+            if os.path.exists(local_logo):
+                app_icon = QIcon(local_logo)
+            else:
+                app_icon = QIcon.fromTheme("preferences-desktop-default-applications")
+        self.setWindowIcon(app_icon)
+        
         self.browsers = detect_browsers()
         self.current_filepath = None
         self.custom_icon_path = None
@@ -342,6 +352,38 @@ class MainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(sidebar_widget)
         sidebar_layout.setContentsMargins(0, 10, 0, 10)
         sidebar_layout.setSpacing(8)
+        
+        # Sidebar Header (Logo + Title)
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(15, 10, 15, 5)
+        header_layout.setSpacing(10)
+        
+        logo_label = QLabel()
+        logo_label.setFixedSize(28, 28)
+        logo_label.setScaledContents(True)
+        
+        logo_pixmap = QPixmap()
+        local_logo = os.path.join(os.path.dirname(__file__), "images", "kde-webapp-gen-icon-logo.png")
+        if os.path.exists(local_logo):
+            logo_pixmap.load(local_logo)
+        else:
+            icon = QIcon.fromTheme("kde-webapp-manager")
+            if not icon.isNull():
+                logo_pixmap = icon.pixmap(28, 28)
+                
+        if logo_pixmap.isNull():
+            icon = QIcon.fromTheme("preferences-desktop-default-applications")
+            logo_pixmap = icon.pixmap(28, 28)
+            
+        logo_label.setPixmap(get_rounded_pixmap(logo_pixmap, radius=4).scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        header_layout.addWidget(logo_label)
+        
+        sidebar_title = QLabel("Webapp Manager")
+        sidebar_title.setStyleSheet("font-weight: bold; font-size: 15px; color: #ffffff; background: transparent;")
+        header_layout.addWidget(sidebar_title)
+        header_layout.addStretch()
+        
+        sidebar_layout.addLayout(header_layout)
         
         # Search bar
         self.search_bar = QLineEdit()

@@ -9,13 +9,21 @@ ICON="preferences-desktop-default-applications"
 
 echo "Installing KDE Webapp Manager..."
 
-# Create local bin if it doesn't exist
+# Create local bin and applications directories if they don't exist
 mkdir -p "$BIN_DIR"
 mkdir -p "$APP_DIR"
+mkdir -p "$HOME/.local/share/icons"
 
 # Copy main.py to bin
 cp main.py "$BIN_DIR/kde-webapp-manager"
 chmod +x "$BIN_DIR/kde-webapp-manager"
+
+# Setup custom logo if present
+ICON="preferences-desktop-default-applications"
+if [ -f "images/kde-webapp-gen-icon-logo.png" ]; then
+    cp "images/kde-webapp-gen-icon-logo.png" "$HOME/.local/share/icons/kde-webapp-manager.png"
+    ICON="kde-webapp-manager"
+fi
 
 # Create Desktop Shortcut
 cat <<EOF > "$APP_DIR/kde-webapp-manager.desktop"
