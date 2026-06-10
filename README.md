@@ -31,12 +31,17 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 
 ## 🛠️ Installation
 
-1. **Prerequisites:**
-   Ensure you have Python 3 and PyQt6 installed. On Arch Linux, Fedora, or Ubuntu, these are typically pre-installed with KDE, but you can install them using:
+### Arch Linux (AUR)
+If you are running Arch Linux or any of its derivatives (such as Manjaro or EndeavourOS), you can install the package directly from the AUR using your favorite helper (like `yay` or `paru`):
+```bash
+yay -S kde-webapp-manager-git
+```
+
+### Other Distributions (Manual Install)
+
+1. **Install Prerequisites:**
+   Ensure you have Python 3 and PyQt6 installed on your system:
    ```bash
-   # Arch Linux
-   sudo pacman -S python-pyqt6
-   
    # Ubuntu / Debian
    sudo apt install python3-pyqt6
    
