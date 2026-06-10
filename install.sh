@@ -22,7 +22,7 @@ chmod +x "$BIN_DIR/kde-webapp-manager"
 ICON="preferences-desktop-default-applications"
 if [ -f "images/kde-webapp-gen-icon-logo.png" ]; then
     cp "images/kde-webapp-gen-icon-logo.png" "$HOME/.local/share/icons/kde-webapp-manager.png"
-    ICON="kde-webapp-manager"
+    ICON="$HOME/.local/share/icons/kde-webapp-manager.png"
 fi
 
 # Create Desktop Shortcut
