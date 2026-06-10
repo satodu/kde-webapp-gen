@@ -1,0 +1,16 @@
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Residual test directories
+\$HOME/
+$HOME/
+
+# IDE settings
+.vscode/
+.idea/
+.venv/
+env/
+venv/
