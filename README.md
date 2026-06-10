@@ -1,5 +1,9 @@
 # KDE Webapp Manager
 
+<p align="center">
+  <img src="images/kde-webapp-gen-icon-logo.png" width="128" height="128" alt="KDE Webapp Manager Logo" />
+</p>
+
 A native, high-fidelity **Qt6 (PyQt6)** utility designed for the **KDE Plasma** desktop environment. It allows you to easily generate, edit, list, and delete custom desktop shortcuts for web applications (like WhatsApp, Netflix, Gemini, Monday, etc.) using Chromium-based browsers (Chrome, Brave, Edge, Vivaldi, Chromium).
 
 It features isolated browser profiles, custom window dimensions, rounded custom icons, and automatic Wayland/X11 window task grouping via KWin.

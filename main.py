@@ -59,6 +59,37 @@ def get_rounded_pixmap(pixmap, radius=8):
     painter.end()
     return target
 
+def get_app_logo_pixmap(size=None):
+    """Loads the app logo, checking installed paths, dev paths, and system icon theme fallback."""
+    pixmap = QPixmap()
+    
+    # 1. Try direct installed path
+    installed_logo = os.path.expanduser("~/.local/share/icons/kde-webapp-manager.png")
+    if os.path.exists(installed_logo):
+        pixmap.load(installed_logo)
+        
+    # 2. Try dev local path relative to current script (dev environment)
+    if pixmap.isNull():
+        local_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "kde-webapp-gen-icon-logo.png")
+        if os.path.exists(local_logo):
+            pixmap.load(local_logo)
+            
+    # 3. Try icon theme
+    if pixmap.isNull():
+        icon = QIcon.fromTheme("kde-webapp-manager")
+        if not icon.isNull():
+            pixmap = icon.pixmap(64, 64)
+            
+    # 4. Fallback to system default app icon
+    if pixmap.isNull():
+        icon = QIcon.fromTheme("preferences-desktop-default-applications")
+        if not icon.isNull():
+            pixmap = icon.pixmap(64, 64)
+            
+    if size and not pixmap.isNull():
+        return pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    return pixmap
+
 def detect_browsers():
     """Detects installed Chromium-based browsers that support the --app flag."""
     candidates = [
@@ -321,14 +352,9 @@ class MainWindow(QMainWindow):
         self.resize(900, 650)
         
         # Set window icon
-        app_icon = QIcon.fromTheme("kde-webapp-manager")
-        if app_icon.isNull():
-            local_logo = os.path.join(os.path.dirname(__file__), "images", "kde-webapp-gen-icon-logo.png")
-            if os.path.exists(local_logo):
-                app_icon = QIcon(local_logo)
-            else:
-                app_icon = QIcon.fromTheme("preferences-desktop-default-applications")
-        self.setWindowIcon(app_icon)
+        logo_pixmap = get_app_logo_pixmap()
+        if not logo_pixmap.isNull():
+            self.setWindowIcon(QIcon(logo_pixmap))
         
         self.browsers = detect_browsers()
         self.current_filepath = None
@@ -362,20 +388,8 @@ class MainWindow(QMainWindow):
         logo_label.setFixedSize(28, 28)
         logo_label.setScaledContents(True)
         
-        logo_pixmap = QPixmap()
-        local_logo = os.path.join(os.path.dirname(__file__), "images", "kde-webapp-gen-icon-logo.png")
-        if os.path.exists(local_logo):
-            logo_pixmap.load(local_logo)
-        else:
-            icon = QIcon.fromTheme("kde-webapp-manager")
-            if not icon.isNull():
-                logo_pixmap = icon.pixmap(28, 28)
-                
-        if logo_pixmap.isNull():
-            icon = QIcon.fromTheme("preferences-desktop-default-applications")
-            logo_pixmap = icon.pixmap(28, 28)
-            
-        logo_label.setPixmap(get_rounded_pixmap(logo_pixmap, radius=4).scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        logo_pixmap = get_app_logo_pixmap(28)
+        logo_label.setPixmap(get_rounded_pixmap(logo_pixmap, radius=4))
         header_layout.addWidget(logo_label)
         
         sidebar_title = QLabel("Webapp Manager")
