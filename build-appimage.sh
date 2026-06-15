@@ -15,7 +15,7 @@ pip install pyinstaller
 
 echo "Compiling application using PyInstaller..."
 # Compile PyQt6 app into a directory
-pyinstaller --noconfirm --onedir --windowed --add-data "images:images" --name "kde-webapp-manager" main.py
+pyinstaller --noconfirm --onedir --windowed --add-data "images:images" --add-data "webapp_manager/*.png:webapp_manager" --name "kde-webapp-manager" main.py
 
 # Deactivate virtual environment
 deactivate
