@@ -4,7 +4,10 @@
   <img src="images/kde-webapp-gen-icon-logo.png" width="128" height="128" alt="KDE Webapp Manager Logo" />
 </p>
 
-A native, high-fidelity **Qt6 (PyQt6)** utility designed for the **KDE Plasma** desktop environment. It allows you to easily generate, edit, list, and delete custom desktop shortcuts for web applications (like WhatsApp, Netflix, Gemini, Monday, etc.) using Chromium-based browsers (Chrome, Brave, Edge, Vivaldi, Chromium).
+> [!NOTE]
+> This is not an official KDE project. The name is only to indicate that it works specifically on the KDE Plasma desktop environment.
+
+A native, high-fidelity **Qt6 (PyQt6)** utility designed for the **KDE Plasma** desktop environment. It allows you to easily generate, edit, list, and delete custom desktop shortcuts for web applications (like WhatsApp, Netflix, Gemini, Monday, etc.) using Chromium-based browsers (both native and Flatpak installations of Chrome, Brave, Edge, Vivaldi, Chromium).
 
 It features isolated browser profiles, custom window dimensions, rounded custom icons, and automatic Wayland/X11 window task grouping via KWin.
 
@@ -15,7 +18,7 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 ## ✨ Features
 
 - 🎨 **Native Qt6 Dark Theme:** Adapts automatically to modern KDE dark styles with clean layout margins, borders, and shadows.
-- 🌐 **Browser Auto-Detection:** Automatically scans the system for installed Chromium-based browsers supporting the `--app` flag (Google Chrome, Brave Browser, Microsoft Edge, Vivaldi, Chromium).
+- 🌐 **Browser Auto-Detection:** Automatically scans the system for installed Chromium-based browsers (both native and Flatpak) supporting the `--app` flag (Google Chrome, Brave Browser, Microsoft Edge, Vivaldi, Chromium).
 - 📂 **Smart Legacy Scanner:** Automatically imports and parses manual webapp shortcuts (e.g., created using `kmenuedit`) that run via `--app=`, letting you upgrade and edit them seamlessly.
 - 💾 **Isolated Profile Management:** Runs each webapp under a separate, dedicated browser profile (`--user-data-dir`) so you don't share cookies, sessions, or caches with your main browser windows.
 - 🚀 **Profile Migration Tool:** Automatically detects and migrates session directories previously created inside literal `/home/user/$HOME` folders (due to lack of shell expansion in manual shortcut launchers), keeping your logins intact and your home directory clean.

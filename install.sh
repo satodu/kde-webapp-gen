@@ -5,21 +5,26 @@ set -e
 
 BIN_DIR="$HOME/.local/bin"
 APP_DIR="$HOME/.local/share/applications"
+SHARE_DIR="$HOME/.local/share/kde-webapp-manager"
 ICON="preferences-desktop-default-applications"
 
 echo "Installing KDE Webapp Manager..."
 
-# Create local bin and applications directories if they don't exist
+# Create necessary local directories
 mkdir -p "$BIN_DIR"
 mkdir -p "$APP_DIR"
 mkdir -p "$HOME/.local/share/icons"
+mkdir -p "$SHARE_DIR"
 
-# Copy main.py to bin
+# Copy main.py wrapper to bin
 cp main.py "$BIN_DIR/kde-webapp-manager"
 chmod +x "$BIN_DIR/kde-webapp-manager"
 
+# Copy webapp_manager package files to share
+rm -rf "$SHARE_DIR/webapp_manager"
+cp -r webapp_manager "$SHARE_DIR/"
+
 # Setup custom logo if present
-ICON="preferences-desktop-default-applications"
 if [ -f "images/kde-webapp-gen-icon-logo.png" ]; then
     cp "images/kde-webapp-gen-icon-logo.png" "$HOME/.local/share/icons/kde-webapp-manager.png"
     ICON="$HOME/.local/share/icons/kde-webapp-manager.png"
