@@ -39,10 +39,19 @@ def get_app_logo_pixmap(size: Optional[int] = None) -> QPixmap:
     """Loads the app logo, checking installed paths, dev paths, and system icon theme fallback."""
     pixmap = QPixmap()
     
-    # 1. Try direct installed path
-    installed_logo = os.path.expanduser("~/.local/share/icons/kde-webapp-manager.png")
-    if os.path.exists(installed_logo):
-        pixmap.load(installed_logo)
+    # 1. Try direct installed paths (user space and system wide)
+    installed_paths = [
+        os.path.expanduser("~/.local/share/icons/kde-webapp-manager.png"),
+        "/usr/share/pixmaps/kde-webapp-manager.png",
+        "/usr/share/icons/hicolor/512x512/apps/kde-webapp-manager.png",
+        "/usr/share/icons/hicolor/256x256/apps/kde-webapp-manager.png",
+        "/usr/share/icons/hicolor/128x128/apps/kde-webapp-manager.png",
+    ]
+    for path in installed_paths:
+        if os.path.exists(path):
+            pixmap.load(path)
+            if not pixmap.isNull():
+                break
         
     # 2. Try dev local path relative to current script (dev environment)
     if pixmap.isNull():
