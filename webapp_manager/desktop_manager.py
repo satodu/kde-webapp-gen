@@ -5,6 +5,7 @@ import subprocess
 import configparser
 from typing import List, Dict, Tuple, Any
 from webapp_manager.constants import APPLICATIONS_DIR
+from webapp_manager.models import Webapp
 
 class DesktopManager:
     _instance = None
@@ -22,34 +23,33 @@ class DesktopManager:
         except Exception:
             pass
 
-    def create_entry(self, name: str, url: str, exec_line: str, final_icon_value: str,
-                     wm_class: str, browser_cmd: str, width: int, height: int,
-                     user_data: str, filepath: str) -> None:
-        """Writes the .desktop file with all necessary KDE webapp keys."""
+    def create_entry(self, webapp: Webapp) -> None:
+        """Writes the .desktop file with all necessary KDE webapp keys from a Webapp instance."""
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str
         config['Desktop Entry'] = {
             'Version': '1.0',
             'Type': 'Application',
-            'Name': name,
-            'Comment': f'Webapp for {name}',
-            'Exec': exec_line,
-            'Icon': final_icon_value,
+            'Name': webapp.name,
+            'Comment': f'Webapp for {webapp.name}',
+            'Exec': webapp.exec_line,
+            'Icon': webapp.icon,
             'Terminal': 'false',
-            'StartupWMClass': wm_class,
+            'StartupWMClass': webapp.wm_class,
             'X-KDE-Webapp': 'true',
-            'X-KDE-Webapp-Url': url,
-            'X-KDE-Webapp-Browser': browser_cmd,
-            'X-KDE-Webapp-Width': str(width),
-            'X-KDE-Webapp-Height': str(height),
-            'X-KDE-Webapp-UserDataDir': user_data,
-            'X-KDE-Webapp-Class': wm_class
+            'X-KDE-Webapp-Url': webapp.url,
+            'X-KDE-Webapp-Browser': webapp.browser,
+            'X-KDE-Webapp-Width': str(webapp.width),
+            'X-KDE-Webapp-Height': str(webapp.height),
+            'X-KDE-Webapp-UserDataDir': webapp.user_data_dir,
+            'X-KDE-Webapp-Class': webapp.wm_class
         }
         
-        with open(filepath, 'w') as f:
+        with open(webapp.filepath, 'w') as f:
             config.write(f, space_around_delimiters=False)
-        os.chmod(filepath, 0o755)
+        os.chmod(webapp.filepath, 0o755)
         self.update_desktop_db()
+        webapp._saved_memento = webapp.create_memento()
 
     def delete_entry(self, filepath: str) -> None:
         """Removes the .desktop file and updates database."""
@@ -57,10 +57,10 @@ class DesktopManager:
             os.remove(filepath)
             self.update_desktop_db()
 
-    def load_all_entries(self, browsers: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
+    def load_all_entries(self, browsers: List[Tuple[str, str]]) -> List[Webapp]:
         """Loads and parses all webapp .desktop entries in the applications directory."""
         desktop_files = glob.glob(os.path.join(APPLICATIONS_DIR, "*.desktop"))
-        webapps: List[Dict[str, Any]] = []
+        webapps: List[Webapp] = []
         
         for filepath in desktop_files:
             try:
@@ -131,20 +131,22 @@ class DesktopManager:
                                     browser_cmd = os.path.basename(tokens[0].replace('"', '').replace("'", ""))
 
                     if is_webapp:
-                        webapps.append({
-                            'filepath': filepath,
-                            'name': entry.get('Name', 'Untitled'),
-                            'url': url,
-                            'browser': browser_cmd,
-                            'width': width,
-                            'height': height,
-                            'user_data_dir': user_data_dir,
-                            'wm_class': wm_class,
-                            'icon': entry.get('Icon', '')
-                        })
+                        app = Webapp(
+                            name=entry.get('Name', 'Untitled'),
+                            url=url,
+                            browser=browser_cmd,
+                            width=width,
+                            height=height,
+                            user_data_dir=user_data_dir,
+                            wm_class=wm_class,
+                            icon=entry.get('Icon', ''),
+                            filepath=filepath
+                        )
+                        app._saved_memento = app.create_memento()
+                        webapps.append(app)
             except Exception as e:
                 print(f"Error reading {filepath}: {e}")
         
         # Sort alphabetically
-        webapps.sort(key=lambda x: x['name'].lower())
+        webapps.sort(key=lambda x: x.name.lower())
         return webapps

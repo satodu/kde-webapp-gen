@@ -3,48 +3,11 @@ import shutil
 import subprocess
 import configparser
 from typing import Optional, Tuple
+from webapp_manager.models import Webapp
 
 class KWinRuleManager:
-    @staticmethod
-    def get_browser_wmclass_prefix(browser_cmd: str) -> Tuple[str, str]:
-        """Returns the main prefix and sub-prefix for KWin window rules based on the selected browser."""
-        main_prefix = "chrome"
-        sub_prefix = "chrome"
-        
-        cmd_lower = browser_cmd.lower()
-        if "com.brave.browser" in cmd_lower:
-            main_prefix = "com.brave.Browser"
-            sub_prefix = "brave"
-        elif "com.google.chrome" in cmd_lower:
-            main_prefix = "com.google.Chrome"
-            sub_prefix = "chrome"
-        elif "org.chromium.chromium" in cmd_lower:
-            main_prefix = "org.chromium.Chromium"
-            sub_prefix = "chromium"
-        elif "com.microsoft.edge" in cmd_lower:
-            main_prefix = "com.microsoft.Edge"
-            sub_prefix = "msedge"
-        elif "com.vivaldi.vivaldi" in cmd_lower:
-            main_prefix = "com.vivaldi.Vivaldi"
-            sub_prefix = "vivaldi"
-        elif "brave" in cmd_lower:
-            main_prefix = "brave-browser"
-            sub_prefix = "brave"
-        elif "edge" in cmd_lower:
-            main_prefix = "microsoft-edge"
-            sub_prefix = "msedge"
-        elif "chromium" in cmd_lower:
-            main_prefix = "chromium-browser"
-            sub_prefix = "chromium"
-        elif "vivaldi" in cmd_lower:
-            main_prefix = "vivaldi-stable"
-            sub_prefix = "vivaldi"
-            
-        return main_prefix, sub_prefix
-
     @classmethod
-    def add_rule(cls, app_name: str, url: str, browser_cmd: str, desktop_file_basename: str,
-                 width: Optional[int] = None, height: Optional[int] = None) -> None:
+    def add_rule(cls, webapp: Webapp) -> None:
         """Automatically adds or updates a KDE KWin window rule to force association
         between the browser window (detected via Wayland app-id/WM_CLASS) and the desktop shortcut file.
         """
@@ -61,6 +24,9 @@ class KWinRuleManager:
                 print(f"Error reading kwinrulesrc: {e}")
                 return
                 
+        # Calculate desktop file basename (e.g. webapp_whatsapp)
+        desktop_file_basename = os.path.splitext(os.path.basename(webapp.filepath))[0]
+        
         # Check if a rule for this desktop file already exists
         rule_uuid = None
         for section in config.sections():
@@ -74,7 +40,7 @@ class KWinRuleManager:
             rule_uuid = str(uuid.uuid4())
             
         # Format url to derive class name
-        clean_url = url.replace("https://", "").replace("http://", "")
+        clean_url = webapp.url.replace("https://", "").replace("http://", "")
         if clean_url.endswith("/"):
             clean_url = clean_url[:-1]
             
@@ -83,12 +49,12 @@ class KWinRuleManager:
         path = parts[1] if len(parts) > 1 else ""
         path_clean = path.replace("/", "_")
         
-        main_prefix, sub_prefix = cls.get_browser_wmclass_prefix(browser_cmd)
+        main_prefix, sub_prefix = webapp.get_browser_prefixes()
         wmclass = f"{sub_prefix}-{domain}__{path_clean}-Default"
         full_wmclass = f"{main_prefix} {wmclass}"
         
         rule_data = {
-            'Description': f'Window settings for {app_name} webapp',
+            'Description': f'Window settings for {webapp.name} webapp',
             'desktopfile': desktop_file_basename,
             'desktopfilerule': '2', # 2 means "Force" (Forçar)
             'types': '1', # 1 means "Normal Window"
@@ -97,8 +63,8 @@ class KWinRuleManager:
             'wmclassmatch': '1' # 1 means "Exact match"
         }
         
-        if width and height:
-            rule_data['size'] = f"{width},{height}"
+        if webapp.width and webapp.height:
+            rule_data['size'] = f"{webapp.width},{webapp.height}"
             rule_data['sizerule'] = '3' # 3 means "Apply Initially"
             
         config[rule_uuid] = rule_data
@@ -118,7 +84,7 @@ class KWinRuleManager:
         try:
             with open(kwinrules_path, 'w') as f:
                 config.write(f, space_around_delimiters=False)
-            print(f"KWin window rule added/updated for {app_name} ({desktop_file_basename})")
+            print(f"KWin window rule added/updated for {webapp.name} ({desktop_file_basename})")
             
             # Notify KWin to reload rules (try qdbus, qdbus6, then dbus-send)
             try:

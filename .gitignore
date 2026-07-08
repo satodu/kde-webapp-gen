@@ -23,3 +23,4 @@ dist/
 AppDir/
 *.AppImage
 appimagetool-x86_64.AppImage
+./appimagetool
