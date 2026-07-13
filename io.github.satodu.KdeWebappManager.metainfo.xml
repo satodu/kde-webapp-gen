@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.github.satodu.KdeWebappManager</id>
+  <id>io.github.satodu.KdeWebappManager</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <name>KDE Webapp Manager</name>
@@ -14,7 +14,7 @@
       It features isolated browser profiles, custom window dimensions, rounded custom icons, and automatic Wayland/X11 window task grouping via KWin.
     </p>
   </description>
-  <launchable type="desktop-id">com.github.satodu.KdeWebappManager.desktop</launchable>
+  <launchable type="desktop-id">io.github.satodu.KdeWebappManager.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/satodu/kde-webapp-gen/main/images/screenshot.png</image>
