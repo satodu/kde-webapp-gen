@@ -13,15 +13,13 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 
 ![KDE Webapp Manager Screenshot](images/screenshot.png)
 
-### 📺 Demonstration
+### Demonstration
 
-<p align="center">
-  <video src="assets/screen_video.webm" width="100%" controls></video>
-</p>
+[Watch the demonstration video](assets/screen_video.webm)
 
 ---
 
-## ✨ Features
+## Features
 
 - 🎨 **Native Qt6 Dark Theme:** Adapts automatically to modern KDE dark styles with clean layout margins, borders, and shadows.
 - 🌐 **Browser Auto-Detection:** Automatically scans the system for installed Chromium-based browsers (both native and Flatpak) supporting the `--app` flag (Google Chrome, Brave Browser, Microsoft Edge, Vivaldi, Chromium).
@@ -38,7 +36,7 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 ### Arch Linux (AUR)
 If you are running Arch Linux or any of its derivatives (such as Manjaro or EndeavourOS), you can install the package directly from the AUR using your favorite helper (like `yay` or `paru`):
@@ -71,7 +69,7 @@ paru -S kde-webapp-manager-git
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 After running the installer:
 - **KDE Application Menu (K-Menu):** Simply search for **"Webapp Manager"** and click to open.
@@ -82,7 +80,7 @@ After running the installer:
 
 ---
 
-## 📂 File Paths & Architecture
+## File Paths & Architecture
 
 - **Manager Executable:** Installed to `~/.local/bin/kde-webapp-manager`.
 - **Manager Menu Launcher:** Installed to `~/.local/share/applications/kde-webapp-manager.desktop`.
@@ -92,6 +90,6 @@ After running the installer:
 
 ---
 
-## 📄 License
+## License
 
 This project is open-source and available under the MIT License.
