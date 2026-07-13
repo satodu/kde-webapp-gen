@@ -13,6 +13,12 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 
 ![KDE Webapp Manager Screenshot](images/screenshot.png)
 
+### 📺 Demonstration
+
+<p align="center">
+  <video src="assets/screen_video.webm" width="100%" controls></video>
+</p>
+
 ---
 
 ## ✨ Features
