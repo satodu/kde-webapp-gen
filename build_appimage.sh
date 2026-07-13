@@ -34,11 +34,18 @@ mkdir -p AppDir/usr/share/pixmaps
 # Copy compiled PyInstaller assets
 cp -r dist/kde-webapp-manager/* AppDir/usr/bin/
 
-# Copy logo icon
+# Copy logo icon to standard pixmaps directory
 cp images/kde-webapp-gen-icon-logo.png AppDir/usr/share/pixmaps/kde-webapp-manager.png
 
-# Symlink main icon to root of AppDir (required by AppImage standard)
-ln -s usr/share/pixmaps/kde-webapp-manager.png AppDir/kde-webapp-manager.png
+# Copy logo icon to standard Freedesktop icon theme path
+mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+cp images/kde-webapp-gen-icon-logo.png AppDir/usr/share/icons/hicolor/256x256/apps/kde-webapp-manager.png
+
+# Copy main icon directly to the root of AppDir as a real file (avoids double symlink extraction bugs)
+cp images/kde-webapp-gen-icon-logo.png AppDir/kde-webapp-manager.png
+
+# Pre-create .DirIcon as a physical file to prevent appimagetool from auto-linking a symlink
+cp images/kde-webapp-gen-icon-logo.png AppDir/.DirIcon
 
 # Create metadata desktop entry inside share/applications/
 cat <<EOF > AppDir/usr/share/applications/kde-webapp-manager.desktop
