@@ -1,0 +1,38 @@
+app-id: com.github.satodu.KdeWebappManager
+runtime: org.kde.Platform
+runtime-version: '6.7'
+sdk: org.kde.Sdk
+base: com.riverbankcomputing.PyQt.BaseApp
+base-version: '6.7'
+command: kde-webapp-manager
+rename-desktop-file: com.github.satodu.KdeWebappManager.desktop
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --talk-name=org.kde.KWin
+  - --filesystem=xdg-data/applications:create
+  - --filesystem=xdg-data/icons:create
+  - --filesystem=xdg-config/kwinrulesrc
+  - --filesystem=xdg-config/webapps:create
+  - --filesystem=/var/lib/flatpak:ro
+  - --filesystem=xdg-data/flatpak:ro
+
+modules:
+  - name: kde-webapp-manager
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: .
+    build-commands:
+      # Instalação dos arquivos Python do pacote
+      - mkdir -p /app/share/kde-webapp-manager
+      - cp -r webapp_manager /app/share/kde-webapp-manager/
+      - cp main.py /app/bin/kde-webapp-manager
+      - chmod +x /app/bin/kde-webapp-manager
+      
+      # Instalar arquivos de metadados, desktop launcher e ícones
+      - install -Dm644 images/kde-webapp-gen-icon-logo.png /app/share/icons/hicolor/256x256/apps/com.github.satodu.KdeWebappManager.png
+      - install -Dm644 com.github.satodu.KdeWebappManager.desktop /app/share/applications/com.github.satodu.KdeWebappManager.desktop
+      - install -Dm644 com.github.satodu.KdeWebappManager.metainfo.xml /app/share/metainfo/com.github.satodu.KdeWebappManager.metainfo.xml

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Webapp Manager
+Comment=Create and edit webapps for KDE Plasma
+Exec=kde-webapp-manager
+Icon=com.github.satodu.KdeWebappManager
+Terminal=false
+Categories=Utility;Qt;
+StartupNotify=true

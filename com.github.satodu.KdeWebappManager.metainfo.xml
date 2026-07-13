@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.satodu.KdeWebappManager</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>KDE Webapp Manager</name>
+  <summary>Create and manage web applications in KDE Plasma</summary>
+  <description>
+    <p>
+      KDE Webapp Manager is a native Qt6 (PyQt6) utility designed for the KDE Plasma desktop environment.
+      It allows you to easily generate, edit, list, and delete custom desktop shortcuts for web applications (such as WhatsApp, Netflix, Gemini, Monday, etc.) using Chromium-based browsers (both native and Flatpak installations).
+    </p>
+    <p>
+      It features isolated browser profiles, custom window dimensions, rounded custom icons, and automatic Wayland/X11 window task grouping via KWin.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.github.satodu.KdeWebappManager.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/satodu/kde-webapp-gen/main/images/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/satodu/kde-webapp-gen</url>
+  <developer id="github.com_satodu">
+    <name>satodu</name>
+  </developer>
+  <content_rating type="oars-1.1" />
+</component>

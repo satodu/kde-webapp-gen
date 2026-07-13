@@ -11,6 +11,7 @@ else:
     # Running from system install location, load package from share
     sys.path.insert(0, os.path.expanduser("~/.local/share/kde-webapp-manager"))
     sys.path.insert(0, "/usr/share/kde-webapp-manager")
+    sys.path.insert(0, "/app/share/kde-webapp-manager")
 
 from webapp_manager.gui import main
 

@@ -42,6 +42,8 @@ def get_app_logo_pixmap(size: Optional[int] = None) -> QPixmap:
     # 1. Try direct installed paths (user space and system wide)
     installed_paths = [
         os.path.expanduser("~/.local/share/icons/kde-webapp-manager.png"),
+        "/app/share/icons/hicolor/256x256/apps/com.github.satodu.KdeWebappManager.png",
+        "/app/share/pixmaps/kde-webapp-manager.png",
         "/usr/share/pixmaps/kde-webapp-manager.png",
         "/usr/share/icons/hicolor/512x512/apps/kde-webapp-manager.png",
         "/usr/share/icons/hicolor/256x256/apps/kde-webapp-manager.png",
