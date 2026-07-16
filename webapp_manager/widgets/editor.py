@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import shlex
 from typing import List, Tuple, Optional
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QSpinBox, QComboBox,
     QPushButton, QLabel, QFileDialog, QMessageBox, QFrame, QScrollArea
@@ -40,7 +40,7 @@ class EditorPanel(QWidget):
         layout.setSpacing(15)
         
         # Header / Title
-        self.header_title = QLabel("Create New Webapp")
+        self.header_title = QLabel("Criar Novo Webapp")
         self.header_title.setObjectName("titleLabel")
         layout.addWidget(self.header_title)
         
@@ -95,34 +95,19 @@ class EditorPanel(QWidget):
         icon_field_layout.setSpacing(10)
         
         self.input_icon = QLineEdit()
-        self.input_icon.setPlaceholderText("applications-internet or full path")
+        self.input_icon.setPlaceholderText("applications-internet ou caminho completo")
         self.input_icon.textChanged.connect(self.on_icon_input_changed)
         icon_field_layout.addWidget(self.input_icon)
         
-        self.btn_select_icon = QPushButton("Select Image...")
-        self.btn_select_icon.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_select_icon.clicked.connect(self.select_custom_icon)
-        icon_field_layout.addWidget(self.btn_select_icon)
+        # Clickable Icon Preview Button (replaces Select Image button and preview label)
+        self.btn_icon_preview = QPushButton()
+        self.btn_icon_preview.setObjectName("iconPreviewButton")
+        self.btn_icon_preview.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_icon_preview.setToolTip("Clique para selecionar uma imagem...")
+        self.btn_icon_preview.clicked.connect(self.select_custom_icon)
+        icon_field_layout.addWidget(self.btn_icon_preview)
         
         form_layout.addRow("App Icon:", icon_field_layout)
-        
-        # Icon Thumbnail Preview Box
-        icon_preview_layout = QHBoxLayout()
-        self.icon_preview_frame = QFrame()
-        self.icon_preview_frame.setObjectName("iconPreviewBox")
-        self.icon_preview_frame.setFixedSize(50, 50)
-        
-        ip_frame_layout = QVBoxLayout(self.icon_preview_frame)
-        ip_frame_layout.setContentsMargins(0, 0, 0, 0)
-        ip_frame_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        self.lbl_icon_preview = QLabel()
-        self.lbl_icon_preview.setFixedSize(48, 48)
-        ip_frame_layout.addWidget(self.lbl_icon_preview)
-        
-        icon_preview_layout.addWidget(self.icon_preview_frame)
-        icon_preview_layout.addStretch()
-        form_layout.addRow("", icon_preview_layout)
         
         layout.addLayout(form_layout)
         
@@ -201,7 +186,7 @@ class EditorPanel(QWidget):
         """Loads a webapp's configurations into the fields."""
         self.current_webapp = webapp
         self.current_filepath = webapp.filepath
-        self.header_title.setText(f"Edit: {webapp.name}")
+        self.header_title.setText(f"Editar: {webapp.name}")
         
         # Block signals temporarily to prevent loop updates
         self.input_name.blockSignals(True)
@@ -254,7 +239,7 @@ class EditorPanel(QWidget):
         self.custom_icon_path = None
         self.current_webapp = Webapp(name="", url="", browser="", width=1024, height=768)
         
-        self.header_title.setText("Create New Webapp")
+        self.header_title.setText("Criar Novo Webapp")
         
         self.input_name.blockSignals(True)
         self.input_url.blockSignals(True)
@@ -378,8 +363,9 @@ class EditorPanel(QWidget):
             if not icon.isNull():
                 pixmap = icon.pixmap(48, 48)
                 
-        rounded = get_rounded_pixmap(pixmap, radius=6)
-        self.lbl_icon_preview.setPixmap(rounded)
+        rounded = get_rounded_pixmap(pixmap, radius=8)
+        self.btn_icon_preview.setIcon(QIcon(rounded))
+        self.btn_icon_preview.setIconSize(QSize(40, 40))
 
     def get_built_command(self) -> str:
         browser_cmd = self.combo_browser.currentData() or "google-chrome-stable"

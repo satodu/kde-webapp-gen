@@ -33,7 +33,7 @@ class SidebarPanel(QWidget):
         header_layout.addWidget(lbl_logo)
         
         lbl_title = QLabel("Webapps")
-        lbl_title.setStyleSheet("font-weight: bold; font-size: 16px; color: #f8fafc;")
+        lbl_title.setStyleSheet("font-weight: bold; font-size: 16px; color: #ffffff;")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         
@@ -42,7 +42,7 @@ class SidebarPanel(QWidget):
         # Search Bar
         self.search_bar = QLineEdit()
         self.search_bar.setObjectName("searchBar")
-        self.search_bar.setPlaceholderText("Search webapps...")
+        self.search_bar.setPlaceholderText("Buscar webapps...")
         self.search_bar.textChanged.connect(self.filter_webapps)
         layout.addWidget(self.search_bar)
         
@@ -54,7 +54,8 @@ class SidebarPanel(QWidget):
         layout.addWidget(self.list_widget)
         
         # "+ New Webapp" Button
-        self.btn_new = QPushButton("+ New Webapp")
+        self.btn_new = QPushButton("+ Novo Webapp")
+        self.btn_new.setObjectName("btnPrimary")
         self.btn_new.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_new.clicked.connect(self.on_new_webapp_clicked)
         

@@ -21,11 +21,11 @@ class WebappListItemWidget(QWidget):
         text_layout.setSpacing(2)
         
         self.name_label = QLabel(name)
-        self.name_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #f8fafc; background: transparent;")
+        self.name_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #ffffff; background: transparent;")
         text_layout.addWidget(self.name_label)
         
         self.url_label = QLabel(url)
-        self.url_label.setStyleSheet("font-size: 11px; color: #94a3b8; background: transparent;")
+        self.url_label.setStyleSheet("font-size: 11px; color: #8c9c9e; background: transparent;")
         text_layout.addWidget(self.url_label)
         
         layout.addLayout(text_layout)
@@ -47,7 +47,7 @@ class WebappListItemWidget(QWidget):
             if not icon.isNull():
                 pixmap = icon.pixmap(64, 64)
         
-        rounded = get_rounded_pixmap(pixmap, radius=8)
+        rounded = get_rounded_pixmap(pixmap, radius=20)
         self.icon_label.setPixmap(rounded)
 
     def update_text(self, name: str, url: str) -> None:

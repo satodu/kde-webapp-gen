@@ -3,8 +3,11 @@ import sys
 from typing import Optional
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QSplitter, QScrollArea, QHBoxLayout
-from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QSplitter, QScrollArea,
+    QHBoxLayout, QVBoxLayout
+)
+from PyQt6.QtGui import QIcon, QPixmap
 
 from webapp_manager.utils import get_app_logo_pixmap
 from webapp_manager.browser_detector import BrowserDetector
@@ -29,14 +32,24 @@ class MainWindow(QMainWindow):
         self.apply_theme()
 
     def init_ui(self) -> None:
-        # Splitter to divide Sidebar and Main panel
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.setCentralWidget(splitter)
+        # Central widget
+        central_widget = QWidget()
+        central_widget.setObjectName("centralWidget")
+        self.setCentralWidget(central_widget)
         
-        # 1. Instantiate Sidebar
+        # Main layout
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Content Layout (Horizontal Splitter)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(splitter)
+        
+        # Instantiate Sidebar
         self.sidebar = SidebarPanel(self.browsers, self)
         
-        # 2. Instantiate Editor and wrap in a Scroll Area
+        # Instantiate Editor and wrap in a Scroll Area
         self.editor = EditorPanel(self.browsers, self)
         
         editor_scroll = QScrollArea()
@@ -51,7 +64,7 @@ class MainWindow(QMainWindow):
         # Set initial layout proportions
         splitter.setSizes([320, 600])
         
-        # 3. Connect signals between panels to coordinate actions
+        # Connect signals between panels to coordinate actions
         self.sidebar.webapp_selected.connect(self.editor.load_webapp)
         self.sidebar.new_webapp_requested.connect(self.editor.new_webapp)
         
