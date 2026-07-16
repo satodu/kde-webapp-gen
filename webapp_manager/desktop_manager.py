@@ -35,7 +35,7 @@ class DesktopManager:
             'Exec': webapp.exec_line,
             'Icon': webapp.icon,
             'Terminal': 'false',
-            'StartupWMClass': webapp.wm_class,
+            'StartupWMClass': webapp.get_real_wm_class(),
             'X-KDE-Webapp': 'true',
             'X-KDE-Webapp-Url': webapp.url,
             'X-KDE-Webapp-Browser': webapp.browser,

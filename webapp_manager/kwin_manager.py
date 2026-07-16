@@ -39,18 +39,8 @@ class KWinRuleManager:
         if not rule_uuid:
             rule_uuid = str(uuid.uuid4())
             
-        # Format url to derive class name
-        clean_url = webapp.url.replace("https://", "").replace("http://", "")
-        if clean_url.endswith("/"):
-            clean_url = clean_url[:-1]
-            
-        parts = clean_url.split("/", 1)
-        domain = parts[0]
-        path = parts[1] if len(parts) > 1 else ""
-        path_clean = path.replace("/", "_")
-        
         main_prefix, sub_prefix = webapp.get_browser_prefixes()
-        wmclass = f"{sub_prefix}-{domain}__{path_clean}-Default"
+        wmclass = webapp.get_real_wm_class()
         full_wmclass = f"{main_prefix} {wmclass}"
         
         rule_data = {

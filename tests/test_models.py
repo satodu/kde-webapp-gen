@@ -52,3 +52,28 @@ class TestWebappModels(unittest.TestCase):
         webapp.restore(webapp._saved_memento)
         self.assertFalse(webapp.is_dirty)
         self.assertEqual(webapp.name, "WhatsApp")
+
+    def test_real_wm_class(self):
+        # Test Google Chrome
+        webapp1 = Webapp(
+            name="YouTube",
+            url="https://www.youtube.com/",
+            browser="google-chrome-stable"
+        )
+        self.assertEqual(webapp1.get_real_wm_class(), "chrome-www.youtube.com__-Default")
+
+        # Test Brave Browser
+        webapp2 = Webapp(
+            name="Docker",
+            url="http://localhost:9000/#!/3/docker/dashboard",
+            browser="brave-browser"
+        )
+        self.assertEqual(webapp2.get_real_wm_class(), "brave-localhost__-Default")
+
+        # Test Microsoft Edge
+        webapp3 = Webapp(
+            name="Gemini",
+            url="https://gemini.google.com/app",
+            browser="microsoft-edge-stable"
+        )
+        self.assertEqual(webapp3.get_real_wm_class(), "msedge-gemini.google.com__app-Default")

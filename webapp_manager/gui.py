@@ -30,6 +30,60 @@ class MainWindow(QMainWindow):
         
         self.init_ui()
         self.apply_theme()
+        self.migrate_existing_webapps()
+
+    def migrate_existing_webapps(self) -> None:
+        """Migrates all existing webapps to use the new native Wayland/X11 icon forcing system."""
+        try:
+            from webapp_manager.desktop_manager import DesktopManager
+            from webapp_manager.kwin_manager import KWinRuleManager
+            import configparser
+            
+            webapps = DesktopManager().load_all_entries(self.browsers)
+            updated_any = False
+            kwinrules_path = os.path.expanduser("~/.config/kwinrulesrc")
+            
+            for app in webapps:
+                real_wmclass = app.get_real_wm_class()
+                
+                # Check .desktop file StartupWMClass
+                desktop_outdated = True
+                if os.path.exists(app.filepath):
+                    parser = configparser.ConfigParser(interpolation=None)
+                    parser.optionxform = str
+                    parser.read(app.filepath)
+                    current_wmclass = parser.get('Desktop Entry', 'StartupWMClass', fallback='')
+                    if current_wmclass == real_wmclass:
+                        desktop_outdated = False
+                        
+                # Check KWin rule
+                rule_outdated = True
+                if os.path.exists(kwinrules_path):
+                    kwin_config = configparser.ConfigParser(interpolation=None)
+                    kwin_config.optionxform = str
+                    kwin_config.read(kwinrules_path)
+                    desktop_file_basename = os.path.splitext(os.path.basename(app.filepath))[0]
+                    main_prefix, _ = app.get_browser_prefixes()
+                    full_wmclass = f"{main_prefix} {real_wmclass}"
+                    for section in kwin_config.sections():
+                        if section == 'General':
+                            continue
+                        if kwin_config.get(section, 'desktopfile', fallback='') == desktop_file_basename:
+                            if kwin_config.get(section, 'wmclasscomplete', fallback='') == 'true' and \
+                               kwin_config.get(section, 'wmclass', fallback='') == full_wmclass:
+                                rule_outdated = False
+                            break
+                            
+                if desktop_outdated or rule_outdated:
+                    print(f"Migrating/Updating webapp '{app.name}' desktop entry and KWin rules...")
+                    DesktopManager().create_entry(app)
+                    KWinRuleManager.add_rule(app)
+                    updated_any = True
+                    
+            if updated_any:
+                print("Migration of webapps complete.")
+        except Exception as e:
+            print(f"Error during webapps migration: {e}")
 
     def init_ui(self) -> None:
         # Central widget
