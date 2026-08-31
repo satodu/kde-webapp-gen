@@ -13,7 +13,8 @@ class WebappMemento:
         height: int,
         user_data_dir: str,
         wm_class: str,
-        icon: str
+        icon: str,
+        isolated_profile: bool = True
     ) -> None:
         self.name = name
         self.url = url
@@ -23,6 +24,7 @@ class WebappMemento:
         self.user_data_dir = user_data_dir
         self.wm_class = wm_class
         self.icon = icon
+        self.isolated_profile = isolated_profile
 
 class Webapp:
     def __init__(
@@ -35,13 +37,15 @@ class Webapp:
         user_data_dir: str = "",
         wm_class: str = "",
         icon: str = "",
-        filepath: str = ""
+        filepath: str = "",
+        isolated_profile: bool = True
     ) -> None:
         self.name = name.strip()
         self.url = url.strip()
         self.browser = browser.strip()
         self.width = width
         self.height = height
+        self.isolated_profile = isolated_profile
         
         # Heuristics for default values if not supplied
         self.user_data_dir = user_data_dir.strip() if user_data_dir else self.generate_default_user_data_dir()
@@ -138,7 +142,7 @@ class Webapp:
         if self.wm_class:
             exec_str += f" --class={self.wm_class}"
         exec_str += f" --app={self.url}"
-        if self.user_data_dir:
+        if self.isolated_profile and self.user_data_dir:
             resolved_ud = os.path.expandvars(os.path.expanduser(self.user_data_dir))
             exec_str += f" --user-data-dir={resolved_ud}"
         return exec_str
@@ -153,7 +157,8 @@ class Webapp:
             height=self.height,
             user_data_dir=self.user_data_dir,
             wm_class=self.wm_class,
-            icon=self.icon
+            icon=self.icon,
+            isolated_profile=self.isolated_profile
         )
 
     def restore(self, memento: Optional[WebappMemento]) -> None:
@@ -168,6 +173,7 @@ class Webapp:
         self.user_data_dir = memento.user_data_dir
         self.wm_class = memento.wm_class
         self.icon = memento.icon
+        self.isolated_profile = memento.isolated_profile
 
     @property
     def is_dirty(self) -> bool:
@@ -182,4 +188,5 @@ class Webapp:
                 self.height != m.height or
                 self.user_data_dir != m.user_data_dir or
                 self.wm_class != m.wm_class or
-                self.icon != m.icon)
+                self.icon != m.icon or
+                self.isolated_profile != m.isolated_profile)

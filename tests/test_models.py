@@ -30,6 +30,20 @@ class TestWebappModels(unittest.TestCase):
         expected = "brave --window-size=800,600 --class=my-custom-class --app=https://gemini.google.com --user-data-dir=/tmp/gemini_profile"
         self.assertEqual(webapp.exec_line, expected)
 
+    def test_non_isolated_exec_line(self):
+        webapp = Webapp(
+            name="Gemini",
+            url="https://gemini.google.com",
+            browser="brave",
+            width=800,
+            height=600,
+            user_data_dir="/tmp/gemini_profile",
+            wm_class="my-custom-class",
+            isolated_profile=False
+        )
+        expected = "brave --window-size=800,600 --class=my-custom-class --app=https://gemini.google.com"
+        self.assertEqual(webapp.exec_line, expected)
+
     def test_memento_draft_tracking(self):
         webapp = Webapp(
             name="WhatsApp",

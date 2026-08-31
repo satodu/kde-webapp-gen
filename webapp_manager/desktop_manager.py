@@ -42,7 +42,8 @@ class DesktopManager:
             'X-KDE-Webapp-Width': str(webapp.width),
             'X-KDE-Webapp-Height': str(webapp.height),
             'X-KDE-Webapp-UserDataDir': webapp.user_data_dir,
-            'X-KDE-Webapp-Class': webapp.wm_class
+            'X-KDE-Webapp-Class': webapp.wm_class,
+            'X-KDE-Webapp-Isolated': 'true' if webapp.isolated_profile else 'false'
         }
         
         with open(webapp.filepath, 'w') as f:
@@ -86,6 +87,12 @@ class DesktopManager:
                             height = 768
                         user_data_dir = entry.get('X-KDE-Webapp-UserDataDir', '')
                         wm_class = entry.get('X-KDE-Webapp-Class', '')
+                        
+                        exec_line = entry.get('Exec', '')
+                        if 'X-KDE-Webapp-Isolated' in entry:
+                            isolated_profile = entry.get('X-KDE-Webapp-Isolated') == 'true'
+                        else:
+                            isolated_profile = '--user-data-dir' in exec_line
                     else:
                         # Fallback heuristic: check if it runs a site-specific browser using --app=
                         exec_line = entry.get('Exec', '')
@@ -111,6 +118,9 @@ class DesktopManager:
                             ud_match = re.search(r'--user-data-dir=["\']?([^\s"\']+)["\']?', exec_line)
                             if ud_match:
                                 user_data_dir = ud_match.group(1)
+                                isolated_profile = True
+                            else:
+                                isolated_profile = False
                                 
                             # Parse Class
                             wm_class = ""
@@ -140,7 +150,8 @@ class DesktopManager:
                             user_data_dir=user_data_dir,
                             wm_class=wm_class,
                             icon=entry.get('Icon', ''),
-                            filepath=filepath
+                            filepath=filepath,
+                            isolated_profile=isolated_profile
                         )
                         app._saved_memento = app.create_memento()
                         webapps.append(app)

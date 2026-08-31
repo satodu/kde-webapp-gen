@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QSpinBox, QComboBox,
-    QPushButton, QLabel, QFileDialog, QMessageBox, QFrame, QScrollArea
+    QPushButton, QLabel, QFileDialog, QMessageBox, QFrame, QScrollArea, QCheckBox
 )
 from PyQt6.QtGui import QIcon, QPixmap
 from webapp_manager.constants import APPLICATIONS_DIR, ICONS_DIR, DEFAULT_USER_DATA_BASE
@@ -122,6 +122,12 @@ class EditorPanel(QWidget):
         adv_form_layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         adv_form_layout.setSpacing(12)
         
+        # Isolated Profile Checkbox
+        self.chk_isolated = QCheckBox("Usar Perfil Isolado (dados/cookies separados)")
+        self.chk_isolated.setChecked(True)
+        self.chk_isolated.toggled.connect(self.on_isolated_toggled)
+        adv_form_layout.addRow("Isolated Profile:", self.chk_isolated)
+        
         # Isolated profile directory
         self.input_userdata = QLineEdit()
         self.input_userdata.setPlaceholderText("Calculated automatically")
@@ -182,6 +188,10 @@ class EditorPanel(QWidget):
         
         self.new_webapp()
 
+    def on_isolated_toggled(self, checked: bool) -> None:
+        self.input_userdata.setEnabled(checked)
+        self.update_command_preview()
+
     def load_webapp(self, webapp: Webapp) -> None:
         """Loads a webapp's configurations into the fields."""
         self.current_webapp = webapp
@@ -195,6 +205,7 @@ class EditorPanel(QWidget):
         self.spin_width.blockSignals(True)
         self.spin_height.blockSignals(True)
         self.input_icon.blockSignals(True)
+        self.chk_isolated.blockSignals(True)
         self.input_userdata.blockSignals(True)
         self.input_class.blockSignals(True)
         
@@ -208,6 +219,8 @@ class EditorPanel(QWidget):
         self.spin_width.setValue(webapp.width)
         self.spin_height.setValue(webapp.height)
         self.input_icon.setText(webapp.icon)
+        self.chk_isolated.setChecked(webapp.isolated_profile)
+        self.input_userdata.setEnabled(webapp.isolated_profile)
         
         expanded_ud = os.path.expandvars(os.path.expanduser(webapp.user_data_dir))
         self.input_userdata.setText(expanded_ud)
@@ -224,6 +237,7 @@ class EditorPanel(QWidget):
         self.spin_width.blockSignals(False)
         self.spin_height.blockSignals(False)
         self.input_icon.blockSignals(False)
+        self.chk_isolated.blockSignals(False)
         self.input_userdata.blockSignals(False)
         self.input_class.blockSignals(False)
         
@@ -237,7 +251,7 @@ class EditorPanel(QWidget):
         """Resets the editor layout back to a blank new webapp template."""
         self.current_filepath = None
         self.custom_icon_path = None
-        self.current_webapp = Webapp(name="", url="", browser="", width=1024, height=768)
+        self.current_webapp = Webapp(name="", url="", browser="", width=1024, height=768, isolated_profile=True)
         
         self.header_title.setText("Criar Novo Webapp")
         
@@ -247,12 +261,15 @@ class EditorPanel(QWidget):
         self.spin_width.blockSignals(True)
         self.spin_height.blockSignals(True)
         self.input_icon.blockSignals(True)
+        self.chk_isolated.blockSignals(True)
         self.input_userdata.blockSignals(True)
         self.input_class.blockSignals(True)
         
         self.input_name.setText("")
         self.input_url.setText("")
         self.input_icon.setText("")
+        self.chk_isolated.setChecked(True)
+        self.input_userdata.setEnabled(True)
         self.input_userdata.setText("")
         self.input_class.setText("")
         
@@ -268,6 +285,7 @@ class EditorPanel(QWidget):
         self.spin_width.blockSignals(False)
         self.spin_height.blockSignals(False)
         self.input_icon.blockSignals(False)
+        self.chk_isolated.blockSignals(False)
         self.input_userdata.blockSignals(False)
         self.input_class.blockSignals(False)
         
@@ -374,6 +392,7 @@ class EditorPanel(QWidget):
         url = self.input_url.text().strip() or "https://..."
         user_data = self.input_userdata.text().strip()
         wm_class = self.input_class.text().strip()
+        isolated = self.chk_isolated.isChecked()
         
         temp_app = Webapp(
             name="",
@@ -382,7 +401,8 @@ class EditorPanel(QWidget):
             width=width,
             height=height,
             user_data_dir=user_data,
-            wm_class=wm_class
+            wm_class=wm_class,
+            isolated_profile=isolated
         )
         return temp_app.exec_line
 
@@ -405,6 +425,7 @@ class EditorPanel(QWidget):
         self.current_webapp.user_data_dir = self.input_userdata.text().strip()
         self.current_webapp.wm_class = self.input_class.text().strip()
         self.current_webapp.icon = self.input_icon.text().strip()
+        self.current_webapp.isolated_profile = self.chk_isolated.isChecked()
         
         self.webapp_changed.emit(self.current_webapp)
         self.btn_discard.setEnabled(self.current_webapp.is_dirty)
@@ -427,12 +448,14 @@ class EditorPanel(QWidget):
         url = self.input_url.text().strip()
         user_data = self.input_userdata.text().strip()
         wm_class = self.input_class.text().strip()
+        isolated = self.chk_isolated.isChecked()
         
         if not url or url == "https://...":
             QMessageBox.warning(self, "Warning", "Please enter a valid URL first.")
             return
             
-        migrate_profile_if_needed(user_data)
+        if isolated:
+            migrate_profile_if_needed(user_data)
         
         temp_app = Webapp(
             name="",
@@ -441,7 +464,8 @@ class EditorPanel(QWidget):
             width=width,
             height=height,
             user_data_dir=user_data,
-            wm_class=wm_class
+            wm_class=wm_class,
+            isolated_profile=isolated
         )
         
         try:
@@ -472,8 +496,10 @@ class EditorPanel(QWidget):
         user_data = self.input_userdata.text().strip()
         wm_class = self.input_class.text().strip()
         icon_input = self.input_icon.text().strip()
+        isolated = self.chk_isolated.isChecked()
 
-        migrate_profile_if_needed(user_data)
+        if isolated:
+            migrate_profile_if_needed(user_data)
 
         # Handle Icon copying
         final_icon_value = icon_input
@@ -500,8 +526,18 @@ class EditorPanel(QWidget):
                 user_data_dir=user_data,
                 wm_class=wm_class,
                 icon=final_icon_value,
-                filepath=self.current_filepath or ""
+                filepath=self.current_filepath or "",
+                isolated_profile=isolated
             )
+        else:
+            self.current_webapp.name = name
+            self.current_webapp.url = url
+            self.current_webapp.browser = browser_cmd
+            self.current_webapp.width = width
+            self.current_webapp.height = height
+            self.current_webapp.user_data_dir = user_data
+            self.current_webapp.wm_class = wm_class
+            self.current_webapp.isolated_profile = isolated
             
         if not self.current_filepath:
             app_slug = re.sub(r'[^a-zA-Z0-9]', '_', name.lower())
