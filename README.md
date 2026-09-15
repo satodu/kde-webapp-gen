@@ -11,6 +11,7 @@ A native, high-fidelity **Qt6 (PyQt6)** utility designed for the **KDE Plasma** 
 
 It features isolated browser profiles, custom window dimensions, rounded custom icons, and automatic Wayland/X11 window task grouping via KWin.
 
+
 ![KDE Webapp Manager Screenshot](images/screenshot.png)
 
 ### Demonstration
