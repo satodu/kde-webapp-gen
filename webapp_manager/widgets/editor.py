@@ -4,10 +4,11 @@ import shutil
 import subprocess
 import shlex
 from typing import List, Tuple, Optional
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QSpinBox, QComboBox,
-    QPushButton, QLabel, QFileDialog, QMessageBox, QFrame, QScrollArea, QCheckBox
+    QPushButton, QLabel, QFileDialog, QMessageBox, QFrame, QScrollArea, QCheckBox,
+    QGraphicsOpacityEffect
 )
 from PyQt6.QtGui import QIcon, QPixmap
 from webapp_manager.constants import APPLICATIONS_DIR, ICONS_DIR, DEFAULT_USER_DATA_BASE
@@ -15,6 +16,46 @@ from webapp_manager.utils import get_rounded_pixmap, migrate_profile_if_needed
 from webapp_manager.desktop_manager import DesktopManager
 from webapp_manager.kwin_manager import KWinRuleManager
 from webapp_manager.models import Webapp
+from webapp_manager.widgets.decorations import (
+    DotMatrixCanvas, HankoBadge, TechnicalCrosshairs, VerticalKanjiRuler, StatusIndicatorPill
+)
+
+def create_bento_card(title: str, hanko_symbol: str = "設", use_dot_matrix: bool = True) -> Tuple[QFrame, QVBoxLayout]:
+    """Helper to create a Bento Grid modular card container with oriental brutalist styling and dot matrix background."""
+    if use_dot_matrix:
+        card = DotMatrixCanvas(dot_spacing=18, dot_color="rgba(222, 223, 215, 0.04)")
+    else:
+        card = QFrame()
+        card.setProperty("class", "bentoCard")
+        
+    card_layout = QVBoxLayout(card)
+    card_layout.setContentsMargins(20, 18, 20, 18)
+    card_layout.setSpacing(14)
+    
+    header_layout = QHBoxLayout()
+    header_layout.setContentsMargins(0, 0, 0, 6)
+    header_layout.setSpacing(8)
+    
+    if hanko_symbol:
+        hanko = HankoBadge(hanko_symbol, style_variant="blue" if hanko_symbol != "規" else "vermilion")
+        header_layout.addWidget(hanko)
+    
+    lbl_title = QLabel(title)
+    lbl_title.setObjectName("sectionTitle")
+    header_layout.addWidget(lbl_title)
+    header_layout.addStretch()
+    
+    cross = TechnicalCrosshairs(3)
+    header_layout.addWidget(cross)
+    
+    card_layout.addLayout(header_layout)
+    return card, card_layout
+
+def create_field_label(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setObjectName("fieldLabel")
+    return lbl
+    return lbl
 
 class EditorPanel(QWidget):
     # Signals to communicate with MainWindow/Sidebar
@@ -25,6 +66,7 @@ class EditorPanel(QWidget):
     def __init__(self, browsers: List[Tuple[str, str]], parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.browsers = browsers
+        self.setObjectName("editorContainer")
         
         self.current_webapp: Optional[Webapp] = None
         self.current_filepath: Optional[str] = None
@@ -32,74 +74,132 @@ class EditorPanel(QWidget):
         self.is_modifying_userdata: bool = False
         self.is_modifying_class: bool = False
         
+        self._fade_anim: Optional[QPropertyAnimation] = None
         self.init_ui()
+
+    def animate_transition(self) -> None:
+        """Plays a subtle, high-end opacity fade-in transition when switching forms."""
+        if self._fade_anim and self._fade_anim.state() == QPropertyAnimation.State.Running:
+            self._fade_anim.stop()
+            
+        effect = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(effect)
+        
+        anim = QPropertyAnimation(effect, b"opacity", self)
+        anim.setDuration(160)
+        anim.setStartValue(0.35)
+        anim.setEndValue(1.0)
+        anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        anim.finished.connect(lambda: self.setGraphicsEffect(None))
+        self._fade_anim = anim
+        anim.start()
 
     def init_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 20, 30, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(36, 28, 36, 32)
+        layout.setSpacing(20)
         
-        # Header / Title
-        self.header_title = QLabel("Criar Novo Webapp")
+        # --- HEADER / DISPLAY TITLE (Oriental Brutalism) ---
+        header_container = QWidget()
+        header_box = QVBoxLayout(header_container)
+        header_box.setContentsMargins(0, 0, 0, 8)
+        header_box.setSpacing(4)
+        
+        header_meta = QHBoxLayout()
+        header_meta.setSpacing(8)
+        
+        tag_config = QLabel("SYS.EDITOR // 02")
+        tag_config.setObjectName("technicalTag")
+        header_meta.addWidget(tag_config)
+        header_meta.addStretch()
+        
+        crosses = QLabel("+ + + +")
+        crosses.setObjectName("crosshairDecor")
+        header_meta.addWidget(crosses)
+        header_box.addLayout(header_meta)
+        
+        self.header_title = QLabel("CRIAR NOVO WEBAPP.")
         self.header_title.setObjectName("titleLabel")
-        layout.addWidget(self.header_title)
+        header_box.addWidget(self.header_title)
         
-        # --- FORM AREA ---
-        form_layout = QFormLayout()
-        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        form_layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        form_layout.setSpacing(12)
+        # Subtle horizontal hairline rule under display title
+        hairline = QFrame()
+        hairline.setFixedHeight(1)
+        hairline.setStyleSheet("background-color: rgba(222, 223, 215, 0.08); border: none;")
+        header_box.addWidget(hairline)
         
-        # Webapp Name
+        layout.addWidget(header_container)
+        
+        # --- BENTO CARD 1: INFORMAÇÕES BÁSICAS ---
+        card1, card1_layout = create_bento_card("// 01. INFORMAÇÕES BÁSICAS.", hanko_symbol="設")
+        
+        form1 = QFormLayout()
+        form1.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form1.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form1.setSpacing(12)
+        
         self.input_name = QLineEdit()
-        self.input_name.setPlaceholderText("e.g. WhatsApp, Netflix")
+        self.input_name.setPlaceholderText("ex: WhatsApp, YouTube, ChatGPT")
         self.input_name.textChanged.connect(self.on_name_changed)
-        form_layout.addRow("App Name:", self.input_name)
+        form1.addRow(create_field_label("APP.NAME:"), self.input_name)
         
-        # URL
         self.input_url = QLineEdit()
         self.input_url.setPlaceholderText("https://web.whatsapp.com")
         self.input_url.textChanged.connect(self.update_command_preview)
-        form_layout.addRow("Site URL:", self.input_url)
+        form1.addRow(create_field_label("SITE.URL:"), self.input_url)
         
-        # Browser Selection
         self.combo_browser = QComboBox()
         for b_name, b_cmd in self.browsers:
             self.combo_browser.addItem(b_name, b_cmd)
         self.combo_browser.currentIndexChanged.connect(self.on_browser_changed)
-        form_layout.addRow("Launch Browser:", self.combo_browser)
+        form1.addRow(create_field_label("BROWSER:"), self.combo_browser)
         
-        # Window Dimensions (Horizontal Layout)
+        card1_layout.addLayout(form1)
+        layout.addWidget(card1)
+        
+        # --- BENTO CARD 2: JANELA & ÍCONE ---
+        card2, card2_layout = create_bento_card("// 02. JANELA & IDENTIDADE VISUAL.", hanko_symbol="視")
+        
+        form2 = QFormLayout()
+        form2.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form2.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form2.setSpacing(12)
+        
+        # Window Dimensions (W x H)
         dim_layout = QHBoxLayout()
-        dim_layout.setSpacing(8)
+        dim_layout.setSpacing(10)
         
         self.spin_width = QSpinBox()
         self.spin_width.setRange(100, 10000)
         self.spin_width.setValue(1024)
+        self.spin_width.setFixedWidth(130)
         self.spin_width.valueChanged.connect(self.update_command_preview)
+        
+        x_label = QLabel("x")
+        x_label.setObjectName("crosshairDecor")
         
         self.spin_height = QSpinBox()
         self.spin_height.setRange(100, 10000)
         self.spin_height.setValue(768)
+        self.spin_height.setFixedWidth(130)
         self.spin_height.valueChanged.connect(self.update_command_preview)
         
         dim_layout.addWidget(self.spin_width)
-        dim_layout.addWidget(QLabel("x"))
+        dim_layout.addWidget(x_label)
         dim_layout.addWidget(self.spin_height)
         dim_layout.addStretch()
         
-        form_layout.addRow("Window Size:", dim_layout)
+        form2.addRow(create_field_label("WINDOW.SIZE:"), dim_layout)
         
         # Icon Section
         icon_field_layout = QHBoxLayout()
-        icon_field_layout.setSpacing(10)
+        icon_field_layout.setSpacing(12)
         
         self.input_icon = QLineEdit()
-        self.input_icon.setPlaceholderText("applications-internet ou caminho completo")
+        self.input_icon.setPlaceholderText("applications-internet ou caminho para arquivo de imagem")
         self.input_icon.textChanged.connect(self.on_icon_input_changed)
         icon_field_layout.addWidget(self.input_icon)
         
-        # Clickable Icon Preview Button (replaces Select Image button and preview label)
         self.btn_icon_preview = QPushButton()
         self.btn_icon_preview.setObjectName("iconPreviewButton")
         self.btn_icon_preview.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -107,68 +207,80 @@ class EditorPanel(QWidget):
         self.btn_icon_preview.clicked.connect(self.select_custom_icon)
         icon_field_layout.addWidget(self.btn_icon_preview)
         
-        form_layout.addRow("App Icon:", icon_field_layout)
+        form2.addRow(create_field_label("APP.ICON:"), icon_field_layout)
         
-        layout.addLayout(form_layout)
+        card2_layout.addLayout(form2)
+        layout.addWidget(card2)
         
-        # Separator / Section title
-        adv_title = QLabel("Advanced Options (Auto-generated)")
-        adv_title.setObjectName("sectionTitle")
-        layout.addWidget(adv_title)
+        # --- BENTO CARD 3: ISOLAMENTO & AMBIENTE KDE ---
+        card3, card3_layout = create_bento_card("// 03. ISOLAMENTO & AMBIENTE KDE.", hanko_symbol="規")
         
-        # Advanced Form Settings
-        adv_form_layout = QFormLayout()
-        adv_form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        adv_form_layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        adv_form_layout.setSpacing(12)
+        form3 = QFormLayout()
+        form3.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form3.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form3.setSpacing(12)
         
-        # Isolated Profile Checkbox
-        self.chk_isolated = QCheckBox("Usar Perfil Isolado (dados/cookies separados)")
+        self.chk_isolated = QCheckBox("Usar Perfil Isolado (sessão, cookies e dados separados)")
         self.chk_isolated.setChecked(True)
         self.chk_isolated.toggled.connect(self.on_isolated_toggled)
-        adv_form_layout.addRow("Isolated Profile:", self.chk_isolated)
+        form3.addRow(create_field_label("PROFILE.ISOLATION:"), self.chk_isolated)
         
-        # Isolated profile directory
         self.input_userdata = QLineEdit()
-        self.input_userdata.setPlaceholderText("Calculated automatically")
+        self.input_userdata.setPlaceholderText("Calculado automaticamente")
         self.input_userdata.textChanged.connect(self.on_userdata_edited)
-        adv_form_layout.addRow("Profile Path:", self.input_userdata)
+        form3.addRow(create_field_label("PROFILE.PATH:"), self.input_userdata)
         
-        # Wayland App ID / WM_CLASS
         self.input_class = QLineEdit()
-        self.input_class.setPlaceholderText("Calculated automatically")
+        self.input_class.setPlaceholderText("Calculado automaticamente (Wayland App ID / WM_CLASS)")
         self.input_class.textChanged.connect(self.on_class_edited)
-        adv_form_layout.addRow("Window Class:", self.input_class)
+        form3.addRow(create_field_label("WM_CLASS:"), self.input_class)
         
-        layout.addLayout(adv_form_layout)
+        card3_layout.addLayout(form3)
+        layout.addWidget(card3)
         
-        # Executable Preview Section
-        cmd_title = QLabel("Execution Command Preview")
-        cmd_title.setObjectName("sectionTitle")
-        layout.addWidget(cmd_title)
+        # --- BENTO CARD 4: COMANDO GERADO / EXECUÇÃO ---
+        card4, card4_layout = create_bento_card("// 04. COMANDO DE EXECUÇÃO.", hanko_symbol="執")
+        
+        cmd_wrapper = QWidget()
+        cmd_wrapper.setObjectName("commandContainer")
+        cmd_vbox = QVBoxLayout(cmd_wrapper)
+        cmd_vbox.setContentsMargins(14, 12, 14, 12)
+        cmd_vbox.setSpacing(6)
+        
+        prompt_row = QHBoxLayout()
+        prompt_row.setSpacing(8)
+        lbl_prompt = QLabel("$")
+        lbl_prompt.setObjectName("commandTerminalPrompt")
+        lbl_prompt.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        prompt_row.addWidget(lbl_prompt)
         
         self.lbl_cmd_preview = QLabel()
         self.lbl_cmd_preview.setObjectName("commandPreview")
         self.lbl_cmd_preview.setWordWrap(True)
-        layout.addWidget(self.lbl_cmd_preview)
+        self.lbl_cmd_preview.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        prompt_row.addWidget(self.lbl_cmd_preview, 1)
+        
+        cmd_vbox.addLayout(prompt_row)
+        card4_layout.addWidget(cmd_wrapper)
+        layout.addWidget(card4)
         
         # --- ACTION BUTTONS BAR ---
         action_layout = QHBoxLayout()
-        action_layout.setSpacing(10)
-        action_layout.setContentsMargins(0, 15, 0, 0)
+        action_layout.setSpacing(12)
+        action_layout.setContentsMargins(0, 10, 0, 10)
         
-        self.btn_test = QPushButton("Test Launch")
+        self.btn_test = QPushButton("TESTAR EXECUÇÃO.")
         self.btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_test.clicked.connect(self.test_run)
         action_layout.addWidget(self.btn_test)
         
-        self.btn_save = QPushButton("Save Webapp")
+        self.btn_save = QPushButton("SALVAR WEBAPP.")
         self.btn_save.setObjectName("btnPrimary")
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_save.clicked.connect(self.save_webapp)
         action_layout.addWidget(self.btn_save)
         
-        self.btn_discard = QPushButton("Discard Changes")
+        self.btn_discard = QPushButton("DESCARTAR.")
         self.btn_discard.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_discard.clicked.connect(self.discard_changes)
         self.btn_discard.setEnabled(False)
@@ -176,7 +288,7 @@ class EditorPanel(QWidget):
         
         action_layout.addStretch()
         
-        self.btn_delete = QPushButton("Delete")
+        self.btn_delete = QPushButton("EXCLUIR.")
         self.btn_delete.setObjectName("btnDanger")
         self.btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_delete.clicked.connect(self.delete_webapp)
@@ -196,9 +308,8 @@ class EditorPanel(QWidget):
         """Loads a webapp's configurations into the fields."""
         self.current_webapp = webapp
         self.current_filepath = webapp.filepath
-        self.header_title.setText(f"Editar: {webapp.name}")
+        self.header_title.setText(f"EDITAR: {webapp.name.upper()}.")
         
-        # Block signals temporarily to prevent loop updates
         self.input_name.blockSignals(True)
         self.input_url.blockSignals(True)
         self.combo_browser.blockSignals(True)
@@ -246,6 +357,7 @@ class EditorPanel(QWidget):
         
         self.btn_delete.setEnabled(True)
         self.btn_discard.setEnabled(webapp.is_dirty)
+        self.animate_transition()
 
     def new_webapp(self) -> None:
         """Resets the editor layout back to a blank new webapp template."""
@@ -253,7 +365,7 @@ class EditorPanel(QWidget):
         self.custom_icon_path = None
         self.current_webapp = Webapp(name="", url="", browser="", width=1024, height=768, isolated_profile=True)
         
-        self.header_title.setText("Criar Novo Webapp")
+        self.header_title.setText("CRIAR NOVO WEBAPP.")
         
         self.input_name.blockSignals(True)
         self.input_url.blockSignals(True)
@@ -294,6 +406,7 @@ class EditorPanel(QWidget):
         
         self.btn_delete.setEnabled(False)
         self.btn_discard.setEnabled(False)
+        self.animate_transition()
 
     def on_name_changed(self) -> None:
         name = self.input_name.text()
@@ -501,7 +614,6 @@ class EditorPanel(QWidget):
         if isolated:
             migrate_profile_if_needed(user_data)
 
-        # Handle Icon copying
         final_icon_value = icon_input
         if self.custom_icon_path and os.path.exists(self.custom_icon_path):
             app_slug = re.sub(r'[^a-zA-Z0-9]', '_', name.lower())
@@ -509,13 +621,15 @@ class EditorPanel(QWidget):
             dest_name = f"webapp_{app_slug}{ext}"
             dest_path = os.path.join(ICONS_DIR, dest_name)
             
-            try:
-                shutil.copy2(self.custom_icon_path, dest_path)
+            if os.path.abspath(self.custom_icon_path) != os.path.abspath(dest_path):
+                try:
+                    shutil.copy2(self.custom_icon_path, dest_path)
+                    final_icon_value = dest_path
+                except Exception as e:
+                    print(f"Error copying icon: {e}")
+            else:
                 final_icon_value = dest_path
-            except Exception as e:
-                print(f"Error copying icon: {e}")
 
-        # Ensure self.current_webapp exists
         if not self.current_webapp:
             self.current_webapp = Webapp(
                 name=name,
@@ -554,8 +668,6 @@ class EditorPanel(QWidget):
             QMessageBox.information(self, "Success", f"Webapp '{name}' saved successfully!")
             
             self.webapp_saved.emit(self.current_webapp)
-            
-            # Reload fields
             self.load_webapp(self.current_webapp)
         except Exception as e:
             QMessageBox.critical(self, "Error Saving", f"Failed to save .desktop file:\n{e}")

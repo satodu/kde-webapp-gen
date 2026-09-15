@@ -2,10 +2,10 @@ import os
 import sys
 from typing import Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QSplitter, QScrollArea,
-    QHBoxLayout, QVBoxLayout
+    QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect
 )
 from PyQt6.QtGui import QIcon, QPixmap
 
@@ -18,8 +18,8 @@ from webapp_manager.widgets.editor import EditorPanel
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("KDE Webapp Manager")
-        self.resize(920, 650)
+        self.setWindowTitle("KDE WEBAPP MANAGER.")
+        self.resize(980, 680)
         
         # Set window icon
         logo_pixmap = get_app_logo_pixmap()
@@ -109,14 +109,15 @@ class MainWindow(QMainWindow):
         editor_scroll = QScrollArea()
         editor_scroll.setObjectName("editorScroll")
         editor_scroll.setWidgetResizable(True)
+        editor_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         editor_scroll.setWidget(self.editor)
         
         # Add to splitter
         splitter.addWidget(self.sidebar)
         splitter.addWidget(editor_scroll)
         
-        # Set initial layout proportions
-        splitter.setSizes([320, 600])
+        # Set initial layout proportions (generous spacing / Ma concept)
+        splitter.setSizes([310, 670])
         
         # Connect signals between panels to coordinate actions
         self.sidebar.webapp_selected.connect(self.editor.load_webapp)
@@ -125,19 +126,32 @@ class MainWindow(QMainWindow):
         self.editor.webapp_saved.connect(self.sidebar.on_webapp_saved)
         self.editor.webapp_deleted.connect(self.sidebar.on_webapp_deleted)
         self.editor.webapp_changed.connect(self.sidebar.on_webapp_changed)
+        
+        # Smooth window entrance animation
+        self.window_opacity_effect = QGraphicsOpacityEffect(central_widget)
+        central_widget.setGraphicsEffect(self.window_opacity_effect)
+        self.window_anim = QPropertyAnimation(self.window_opacity_effect, b"opacity")
+        self.window_anim.setDuration(240)
+        self.window_anim.setStartValue(0.2)
+        self.window_anim.setEndValue(1.0)
+        self.window_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.window_anim.finished.connect(lambda: central_widget.setGraphicsEffect(None))
+        self.window_anim.start()
 
     def apply_theme(self) -> None:
-        """Applies the custom, high-fidelity dark stylesheet to match KDE dark elements."""
+        """Applies the custom, high-fidelity dark stylesheet with Oriental Brutalist aesthetic."""
         pkg_dir = os.path.dirname(os.path.abspath(__file__))
-        arrow_up = os.path.join(pkg_dir, "arrow-up.png").replace(os.sep, '/')
-        arrow_up_hover = os.path.join(pkg_dir, "arrow-up-hover.png").replace(os.sep, '/')
-        arrow_down = os.path.join(pkg_dir, "arrow-down.png").replace(os.sep, '/')
-        arrow_down_hover = os.path.join(pkg_dir, "arrow-down-hover.png").replace(os.sep, '/')
+        arrow_up = os.path.join(pkg_dir, "chevron-up.svg").replace(os.sep, '/')
+        arrow_up_hover = os.path.join(pkg_dir, "chevron-up-hover.svg").replace(os.sep, '/')
+        arrow_down = os.path.join(pkg_dir, "chevron-down.svg").replace(os.sep, '/')
+        arrow_down_hover = os.path.join(pkg_dir, "chevron-down-hover.svg").replace(os.sep, '/')
+        check_icon = os.path.join(pkg_dir, "check.svg").replace(os.sep, '/')
 
         qss = DARK_THEME_QSS.replace("ARROW_UP_PATH", arrow_up) \
                             .replace("ARROW_UP_HOVER_PATH", arrow_up_hover) \
                             .replace("ARROW_DOWN_PATH", arrow_down) \
-                            .replace("ARROW_DOWN_HOVER_PATH", arrow_down_hover)
+                            .replace("ARROW_DOWN_HOVER_PATH", arrow_down_hover) \
+                            .replace("CHECK_ICON_PATH", check_icon)
         self.setStyleSheet(qss)
 
 def main() -> None:
