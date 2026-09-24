@@ -68,13 +68,29 @@ class TestWebappModels(unittest.TestCase):
         self.assertEqual(webapp.name, "WhatsApp")
 
     def test_real_wm_class(self):
-        # Test Google Chrome
+        # Test Google Chrome with trailing slash
         webapp1 = Webapp(
             name="YouTube",
             url="https://www.youtube.com/",
             browser="google-chrome-stable"
         )
         self.assertEqual(webapp1.get_real_wm_class(), "chrome-www.youtube.com__-Default")
+
+        # Test Google Chrome without trailing slash (normalization)
+        webapp1_noslash = Webapp(
+            name="YouTube",
+            url="https://www.youtube.com",
+            browser="google-chrome-stable"
+        )
+        self.assertEqual(webapp1_noslash.get_real_wm_class(), "chrome-www.youtube.com__-Default")
+
+        # Test Vivaldi with isolated profile and without trailing slash
+        webapp_vivaldi = Webapp(
+            name="WhatsApp",
+            url="https://web.whatsapp.com",
+            browser="vivaldi-stable"
+        )
+        self.assertEqual(webapp_vivaldi.get_real_wm_class(), "vivaldi-web.whatsapp.com__-Default")
 
         # Test Brave Browser
         webapp2 = Webapp(

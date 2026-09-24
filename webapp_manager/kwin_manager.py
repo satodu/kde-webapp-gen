@@ -39,17 +39,15 @@ class KWinRuleManager:
         if not rule_uuid:
             rule_uuid = str(uuid.uuid4())
             
-        main_prefix, sub_prefix = webapp.get_browser_prefixes()
         wmclass = webapp.get_real_wm_class()
-        full_wmclass = f"{main_prefix} {wmclass}"
         
         rule_data = {
             'Description': f'Window settings for {webapp.name} webapp',
             'desktopfile': desktop_file_basename,
             'desktopfilerule': '2', # 2 means "Force" (Forçar)
             'types': '1', # 1 means "Normal Window"
-            'wmclass': full_wmclass,
-            'wmclasscomplete': 'true',
+            'wmclass': wmclass,
+            'wmclasscomplete': 'false',
             'wmclassmatch': '1' # 1 means "Exact match"
         }
         
