@@ -27,6 +27,7 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 - **Smart Legacy Scanner:** Automatically imports and parses manual webapp shortcuts (e.g., created using `kmenuedit`) that run via `--app=`, letting you upgrade and edit them seamlessly.
 - **Isolated Profile Management:** Runs each webapp under a separate, dedicated browser profile (`--user-data-dir`) so you don't share cookies, sessions, or caches with your main browser windows.
 - **Profile Migration Tool:** Automatically detects and migrates session directories previously created inside literal `/home/user/$HOME` folders (due to lack of shell expansion in manual shortcut launchers), keeping your logins intact and your home directory clean.
+- **Import / Export (JSON):** Back up or move your webapps between machines through a human-readable `.json` file, picking exactly which webapps to export and import. Custom icons are embedded, profile paths are regenerated on the target machine, and name conflicts can be renamed, overwritten, or skipped.
 - **Integrated Dimensions Editor:** Custom QSpinBox styling with nested up/down arrows and CSS controls for a clean numeric entry.
 - **Wayland Window Rules (KWin Integration):** 
   - Automatically generates and registers KWin window rules inside `~/.config/kwinrulesrc` when saving a webapp.

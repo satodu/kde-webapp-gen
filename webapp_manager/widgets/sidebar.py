@@ -3,10 +3,14 @@ from typing import List, Tuple, Optional
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QPushButton, QFrame
+    QListWidget, QListWidgetItem, QPushButton, QFrame,
+    QFileDialog, QMessageBox, QComboBox, QFormLayout
 )
+from webapp_manager import import_export
 from webapp_manager.desktop_manager import DesktopManager
+from webapp_manager.kwin_manager import KWinRuleManager
 from webapp_manager.models import Webapp
+from webapp_manager.widgets.selection_dialog import WebappSelectionDialog
 from webapp_manager.widgets.list_item import WebappListItemWidget
 from webapp_manager.widgets.decorations import HankoBadge, StatusIndicatorPill, TechnicalCrosshairs
 
@@ -96,6 +100,20 @@ class SidebarPanel(QWidget):
         self.btn_new.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_new.clicked.connect(self.on_new_webapp_clicked)
         
+        self.btn_import = QPushButton("IMPORTAR")
+        self.btn_import.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_import.clicked.connect(self.on_import_clicked)
+
+        self.btn_export = QPushButton("EXPORTAR")
+        self.btn_export.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_export.clicked.connect(self.on_export_clicked)
+
+        transfer_layout = QHBoxLayout()
+        transfer_layout.setContentsMargins(16, 4, 16, 0)
+        transfer_layout.addWidget(self.btn_import)
+        transfer_layout.addWidget(self.btn_export)
+        layout.addLayout(transfer_layout)
+
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(16, 4, 16, 4)
         btn_layout.addWidget(self.btn_new)
@@ -167,6 +185,124 @@ class SidebarPanel(QWidget):
         self.list_widget.clearSelection()
         self.list_widget.blockSignals(False)
         self.new_webapp_requested.emit()
+
+    def on_export_clicked(self) -> None:
+        webapps = DesktopManager().load_all_entries(self.browsers)
+        if not webapps:
+            QMessageBox.information(self, "Exportar", "Nenhum webapp salvo para exportar.")
+            return
+
+        dialog = WebappSelectionDialog(
+            "Exportar webapps",
+            "Selecione os webapps que serão exportados. Rascunhos não salvos não são incluídos.",
+            [(f"{app.name}  —  {app.url}", app.url) for app in webapps],
+            parent=self,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        selected = [webapps[i] for i in dialog.checked_indexes()]
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Exportar webapps", os.path.expanduser("~/webapps.json"), "JSON (*.json)"
+        )
+        if not path:
+            return
+        if not path.endswith(".json"):
+            path += ".json"
+
+        try:
+            import_export.export_webapps(selected, path)
+            QMessageBox.information(self, "Exportar", f"{len(selected)} webapp(s) exportado(s) para:\n{path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Erro ao exportar", f"Falha ao gravar o arquivo:\n{e}")
+
+    def on_import_clicked(self) -> None:
+        if not self.browsers:
+            QMessageBox.warning(self, "Importar", "Nenhum navegador Chromium detectado para rodar os webapps.")
+            return
+
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Importar webapps", os.path.expanduser("~"), "JSON (*.json);;Todos os arquivos (*)"
+        )
+        if not path:
+            return
+
+        try:
+            imported = import_export.load_import_file(path)
+        except import_export.ImportExportError as e:
+            QMessageBox.critical(self, "Erro ao importar", str(e))
+            return
+        if not imported:
+            QMessageBox.information(self, "Importar", "O arquivo não contém webapps.")
+            return
+
+        existing = DesktopManager().load_all_entries(self.browsers)
+        browser_cmds = [cmd for _, cmd in self.browsers]
+
+        entries = []
+        has_missing_browser = False
+        for item in imported:
+            tags = []
+            if import_export.find_conflict(item.webapp, existing):
+                tags.append("JÁ EXISTE")
+            if item.webapp.browser not in browser_cmds:
+                tags.append("NAVEGADOR AUSENTE")
+                has_missing_browser = True
+            suffix = f"  [{', '.join(tags)}]" if tags else ""
+            entries.append((f"{item.webapp.name}  —  {item.webapp.url}{suffix}", item.webapp.browser))
+
+        options = QWidget()
+        form = QFormLayout(options)
+        form.setContentsMargins(0, 0, 0, 0)
+
+        combo_conflict = QComboBox()
+        combo_conflict.addItem("Renomear (ex.: Nome (2))", import_export.CONFLICT_RENAME)
+        combo_conflict.addItem("Sobrescrever existente", import_export.CONFLICT_OVERWRITE)
+        combo_conflict.addItem("Pular", import_export.CONFLICT_SKIP)
+        form.addRow("Se já existir:", combo_conflict)
+
+        combo_browser = QComboBox()
+        for b_name, b_cmd in self.browsers:
+            combo_browser.addItem(b_name, b_cmd)
+        combo_browser.setEnabled(has_missing_browser)
+        form.addRow("Navegador ausente usar:", combo_browser)
+
+        dialog = WebappSelectionDialog(
+            "Importar webapps",
+            f"Selecione os webapps de '{os.path.basename(path)}' que serão importados.",
+            entries,
+            extra_widget=options,
+            parent=self,
+        )
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+
+        policy = combo_conflict.currentData()
+        fallback_browser = combo_browser.currentData()
+        imported_count, skipped, errors = 0, 0, []
+
+        for i in dialog.checked_indexes():
+            item = imported[i]
+            webapp = import_export.resolve_for_install(item, existing, policy, browser_cmds, fallback_browser)
+            if webapp is None:
+                skipped += 1
+                continue
+            try:
+                import_export.write_embedded_icon(webapp, item)
+                DesktopManager().create_entry(webapp)
+                KWinRuleManager.add_rule(webapp)
+                existing.append(webapp)
+                imported_count += 1
+            except Exception as e:
+                errors.append(f"{item.webapp.name}: {e}")
+
+        self.load_webapps()
+
+        summary = f"{imported_count} importado(s), {skipped} ignorado(s)."
+        if errors:
+            QMessageBox.warning(self, "Importar", summary + "\n\nFalhas:\n" + "\n".join(errors))
+        else:
+            QMessageBox.information(self, "Importar", summary)
 
     def on_webapp_saved(self, webapp: Webapp) -> None:
         self.load_webapps()
