@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QDialogButtonBox, QWidget
 )
+from webapp_manager.i18n import tr
 
 
 class WebappSelectionDialog(QDialog):
@@ -41,9 +42,9 @@ class WebappSelectionDialog(QDialog):
         layout.addWidget(self.list_widget)
 
         toggle_row = QHBoxLayout()
-        btn_all = QPushButton("MARCAR TODOS")
+        btn_all = QPushButton(tr("selection.check_all"))
         btn_all.clicked.connect(lambda: self.set_all(Qt.CheckState.Checked))
-        btn_none = QPushButton("DESMARCAR TODOS")
+        btn_none = QPushButton(tr("selection.uncheck_all"))
         btn_none.clicked.connect(lambda: self.set_all(Qt.CheckState.Unchecked))
         toggle_row.addWidget(btn_all)
         toggle_row.addWidget(btn_none)

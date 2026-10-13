@@ -6,6 +6,7 @@ import binascii
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from webapp_manager.constants import ICONS_DIR
+from webapp_manager.i18n import tr
 from webapp_manager.models import Webapp
 
 FORMAT_ID = "kde-webapp-gen"
@@ -75,7 +76,7 @@ def export_webapps(webapps: List[Webapp], path: str) -> None:
 def _require_str(data: Dict[str, Any], key: str, index: int) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not value.strip():
-        raise ImportExportError(f"Webapp #{index + 1}: campo '{key}' ausente ou inválido.")
+        raise ImportExportError(tr("import_error.field", index=index + 1, key=key))
     return value.strip()
 
 
@@ -94,13 +95,13 @@ def _parse_icon(raw: Any, index: int) -> Tuple[str, str, bytes]:
     if raw.get("type") == "embedded":
         ext = str(raw.get("extension", "")).lower()
         if ext not in ALLOWED_ICON_EXTENSIONS:
-            raise ImportExportError(f"Webapp #{index + 1}: extensão de ícone não suportada '{ext}'.")
+            raise ImportExportError(tr("import_error.icon_ext", index=index + 1, ext=ext))
         try:
             data = base64.b64decode(str(raw.get("data", "")), validate=True)
         except (binascii.Error, ValueError):
-            raise ImportExportError(f"Webapp #{index + 1}: ícone embutido corrompido.")
+            raise ImportExportError(tr("import_error.icon_corrupt", index=index + 1))
         if not data or len(data) > MAX_ICON_BYTES:
-            raise ImportExportError(f"Webapp #{index + 1}: ícone embutido vazio ou grande demais.")
+            raise ImportExportError(tr("import_error.icon_size", index=index + 1))
         return DEFAULT_ICON, ext, data
 
     value = raw.get("value")
@@ -112,7 +113,7 @@ def _parse_icon(raw: Any, index: int) -> Tuple[str, str, bytes]:
 
 def webapp_from_dict(data: Any, index: int = 0) -> ImportedWebapp:
     if not isinstance(data, dict):
-        raise ImportExportError(f"Webapp #{index + 1}: entrada inválida.")
+        raise ImportExportError(tr("import_error.entry", index=index + 1))
 
     name = _require_str(data, "name", index)
     url = _require_str(data, "url", index)
@@ -120,7 +121,7 @@ def webapp_from_dict(data: Any, index: int = 0) -> ImportedWebapp:
 
     # The URL ends up in the Exec line, so whitespace would inject extra arguments.
     if not re.fullmatch(r"https?://\S+", url):
-        raise ImportExportError(f"Webapp #{index + 1}: URL inválida '{url}'.")
+        raise ImportExportError(tr("import_error.url", index=index + 1, url=url))
 
     wm_class = data.get("wm_class", "")
     if not isinstance(wm_class, str) or not re.fullmatch(r"[A-Za-z0-9_.-]*", wm_class):
@@ -151,20 +152,20 @@ def load_import_file(path: str) -> List[ImportedWebapp]:
         with open(path, "r", encoding="utf-8") as f:
             payload = json.load(f)
     except (OSError, UnicodeDecodeError) as e:
-        raise ImportExportError(f"Não foi possível ler o arquivo:\n{e}")
+        raise ImportExportError(tr("import_error.read", error=e))
     except json.JSONDecodeError as e:
-        raise ImportExportError(f"Arquivo não é um JSON válido:\n{e}")
+        raise ImportExportError(tr("import_error.json", error=e))
 
     if not isinstance(payload, dict) or payload.get("format") != FORMAT_ID:
-        raise ImportExportError("Arquivo não é uma exportação do KDE Webapp Manager.")
+        raise ImportExportError(tr("import_error.format"))
 
     version = payload.get("version")
     if not isinstance(version, int) or version > FORMAT_VERSION or version < 1:
-        raise ImportExportError(f"Versão de formato não suportada: {version}.")
+        raise ImportExportError(tr("import_error.version", version=version))
 
     entries = payload.get("webapps")
     if not isinstance(entries, list):
-        raise ImportExportError("Campo 'webapps' ausente ou inválido.")
+        raise ImportExportError(tr("import_error.webapps"))
 
     return [webapp_from_dict(entry, i) for i, entry in enumerate(entries)]
 

@@ -23,6 +23,8 @@ pyinstaller --name kde-webapp-manager \
             --windowed \
             --onedir \
             --add-data "webapp_manager/*.png:webapp_manager/" \
+            --add-data "webapp_manager/*.svg:webapp_manager/" \
+            --add-data "webapp_manager/i18n/*.json:webapp_manager/i18n/" \
             main.py
 
 # 4. Create AppDir directory structure

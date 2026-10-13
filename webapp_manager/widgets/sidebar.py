@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox, QComboBox, QFormLayout
 )
 from webapp_manager import import_export
+from webapp_manager.i18n import tr
 from webapp_manager.desktop_manager import DesktopManager
 from webapp_manager.kwin_manager import KWinRuleManager
 from webapp_manager.models import Webapp
@@ -82,7 +83,7 @@ class SidebarPanel(QWidget):
         # Search Bar
         self.search_bar = QLineEdit()
         self.search_bar.setObjectName("searchBar")
-        self.search_bar.setPlaceholderText("BUSCAR WEBAPP...")
+        self.search_bar.setPlaceholderText(tr("sidebar.search"))
         self.search_bar.textChanged.connect(self.filter_webapps)
         layout.addWidget(self.search_bar)
         
@@ -95,7 +96,7 @@ class SidebarPanel(QWidget):
         layout.addWidget(self.list_widget)
         
         # Bottom Button: "+ NOVO WEBAPP."
-        self.btn_new = QPushButton("+ NOVO WEBAPP.")
+        self.btn_new = QPushButton(tr("sidebar.new"))
         self.btn_new.setObjectName("btnPrimary")
         self.btn_new.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_new.clicked.connect(self.on_new_webapp_clicked)
@@ -175,12 +176,12 @@ class SidebarPanel(QWidget):
     def on_export_clicked(self) -> None:
         webapps = DesktopManager().load_all_entries(self.browsers)
         if not webapps:
-            QMessageBox.information(self, "Exportar", "Nenhum webapp salvo para exportar.")
+            QMessageBox.information(self, tr("export.title"), tr("export.none"))
             return
 
         dialog = WebappSelectionDialog(
-            "Exportar webapps",
-            "Selecione os webapps que serão exportados. Rascunhos não salvos não são incluídos.",
+            tr("export.title"),
+            tr("export.select"),
             [(f"{app.name}  —  {app.url}", app.url) for app in webapps],
             parent=self,
         )
@@ -189,7 +190,7 @@ class SidebarPanel(QWidget):
         selected = [webapps[i] for i in dialog.checked_indexes()]
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar webapps", os.path.expanduser("~/webapps.json"), "JSON (*.json)"
+            self, tr("export.title"), os.path.expanduser("~/webapps.json"), "JSON (*.json)"
         )
         if not path:
             return
@@ -198,17 +199,17 @@ class SidebarPanel(QWidget):
 
         try:
             import_export.export_webapps(selected, path)
-            QMessageBox.information(self, "Exportar", f"{len(selected)} webapp(s) exportado(s) para:\n{path}")
+            QMessageBox.information(self, tr("export.title"), tr("export.done", count=len(selected), path=path))
         except Exception as e:
-            QMessageBox.critical(self, "Erro ao exportar", f"Falha ao gravar o arquivo:\n{e}")
+            QMessageBox.critical(self, tr("export.error_title"), tr("export.error", error=e))
 
     def on_import_clicked(self) -> None:
         if not self.browsers:
-            QMessageBox.warning(self, "Importar", "Nenhum navegador Chromium detectado para rodar os webapps.")
+            QMessageBox.warning(self, tr("import.title"), tr("import.no_browser"))
             return
 
         path, _ = QFileDialog.getOpenFileName(
-            self, "Importar webapps", os.path.expanduser("~"), "JSON (*.json);;Todos os arquivos (*)"
+            self, tr("import.title"), os.path.expanduser("~"), f"JSON (*.json);;{tr('common.all_files')} (*)"
         )
         if not path:
             return
@@ -216,10 +217,10 @@ class SidebarPanel(QWidget):
         try:
             imported = import_export.load_import_file(path)
         except import_export.ImportExportError as e:
-            QMessageBox.critical(self, "Erro ao importar", str(e))
+            QMessageBox.critical(self, tr("import.error_title"), str(e))
             return
         if not imported:
-            QMessageBox.information(self, "Importar", "O arquivo não contém webapps.")
+            QMessageBox.information(self, tr("import.title"), tr("import.empty"))
             return
 
         existing = DesktopManager().load_all_entries(self.browsers)
@@ -230,9 +231,9 @@ class SidebarPanel(QWidget):
         for item in imported:
             tags = []
             if import_export.find_conflict(item.webapp, existing):
-                tags.append("JÁ EXISTE")
+                tags.append(tr("import.tag_exists"))
             if item.webapp.browser not in browser_cmds:
-                tags.append("NAVEGADOR AUSENTE")
+                tags.append(tr("import.tag_missing_browser"))
                 has_missing_browser = True
             suffix = f"  [{', '.join(tags)}]" if tags else ""
             entries.append((f"{item.webapp.name}  —  {item.webapp.url}{suffix}", item.webapp.browser))
@@ -242,20 +243,20 @@ class SidebarPanel(QWidget):
         form.setContentsMargins(0, 0, 0, 0)
 
         combo_conflict = QComboBox()
-        combo_conflict.addItem("Renomear (ex.: Nome (2))", import_export.CONFLICT_RENAME)
-        combo_conflict.addItem("Sobrescrever existente", import_export.CONFLICT_OVERWRITE)
-        combo_conflict.addItem("Pular", import_export.CONFLICT_SKIP)
-        form.addRow("Se já existir:", combo_conflict)
+        combo_conflict.addItem(tr("import.conflict_rename"), import_export.CONFLICT_RENAME)
+        combo_conflict.addItem(tr("import.conflict_overwrite"), import_export.CONFLICT_OVERWRITE)
+        combo_conflict.addItem(tr("import.conflict_skip"), import_export.CONFLICT_SKIP)
+        form.addRow(tr("import.if_exists"), combo_conflict)
 
         combo_browser = QComboBox()
         for b_name, b_cmd in self.browsers:
             combo_browser.addItem(b_name, b_cmd)
         combo_browser.setEnabled(has_missing_browser)
-        form.addRow("Navegador ausente usar:", combo_browser)
+        form.addRow(tr("import.missing_browser_use"), combo_browser)
 
         dialog = WebappSelectionDialog(
-            "Importar webapps",
-            f"Selecione os webapps de '{os.path.basename(path)}' que serão importados.",
+            tr("import.title"),
+            tr("import.select", file=os.path.basename(path)),
             entries,
             extra_widget=options,
             parent=self,
@@ -284,11 +285,11 @@ class SidebarPanel(QWidget):
 
         self.load_webapps()
 
-        summary = f"{imported_count} importado(s), {skipped} ignorado(s)."
+        summary = tr("import.summary", imported=imported_count, skipped=skipped)
         if errors:
-            QMessageBox.warning(self, "Importar", summary + "\n\nFalhas:\n" + "\n".join(errors))
+            QMessageBox.warning(self, tr("import.title"), f"{summary}\n\n{tr('import.failures')}\n" + "\n".join(errors))
         else:
-            QMessageBox.information(self, "Importar", summary)
+            QMessageBox.information(self, tr("import.title"), summary)
 
     def on_webapp_saved(self, webapp: Webapp) -> None:
         self.load_webapps()

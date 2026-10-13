@@ -11,10 +11,12 @@ from PyQt6.QtWidgets import (
     QGraphicsOpacityEffect
 )
 from PyQt6.QtGui import QIcon, QPixmap
+from webapp_manager.i18n import tr
 from webapp_manager.constants import APPLICATIONS_DIR, ICONS_DIR, DEFAULT_USER_DATA_BASE
 from webapp_manager.utils import get_rounded_pixmap, migrate_profile_if_needed
 from webapp_manager.desktop_manager import DesktopManager
 from webapp_manager.kwin_manager import KWinRuleManager
+from webapp_manager.browser_detector import BrowserDetector
 from webapp_manager.models import Webapp
 from webapp_manager.widgets.decorations import (
     DotMatrixCanvas, HankoBadge, TechnicalCrosshairs, VerticalKanjiRuler, StatusIndicatorPill
@@ -54,6 +56,7 @@ def create_bento_card(title: str, hanko_symbol: str = "設", use_dot_matrix: boo
 def create_field_label(text: str) -> QLabel:
     lbl = QLabel(text)
     lbl.setObjectName("fieldLabel")
+    lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     return lbl
     return lbl
 
@@ -118,7 +121,7 @@ class EditorPanel(QWidget):
         header_meta.addWidget(crosses)
         header_box.addLayout(header_meta)
         
-        self.header_title = QLabel("CRIAR NOVO WEBAPP.")
+        self.header_title = QLabel(tr("editor.title_new"))
         self.header_title.setObjectName("titleLabel")
         header_box.addWidget(self.header_title)
         
@@ -131,7 +134,7 @@ class EditorPanel(QWidget):
         layout.addWidget(header_container)
         
         # --- BENTO CARD 1: INFORMAÇÕES BÁSICAS ---
-        card1, card1_layout = create_bento_card("// 01. INFORMAÇÕES BÁSICAS.", hanko_symbol="設")
+        card1, card1_layout = create_bento_card(tr("editor.card_basic"), hanko_symbol="設")
         
         form1 = QFormLayout()
         form1.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -139,7 +142,7 @@ class EditorPanel(QWidget):
         form1.setSpacing(12)
         
         self.input_name = QLineEdit()
-        self.input_name.setPlaceholderText("ex: WhatsApp, YouTube, ChatGPT")
+        self.input_name.setPlaceholderText(tr("editor.name_placeholder"))
         self.input_name.textChanged.connect(self.on_name_changed)
         form1.addRow(create_field_label("APP.NAME:"), self.input_name)
         
@@ -158,7 +161,7 @@ class EditorPanel(QWidget):
         layout.addWidget(card1)
         
         # --- BENTO CARD 2: JANELA & ÍCONE ---
-        card2, card2_layout = create_bento_card("// 02. JANELA & IDENTIDADE VISUAL.", hanko_symbol="視")
+        card2, card2_layout = create_bento_card(tr("editor.card_window"), hanko_symbol="視")
         
         form2 = QFormLayout()
         form2.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -184,6 +187,10 @@ class EditorPanel(QWidget):
         self.spin_height.setFixedWidth(130)
         self.spin_height.valueChanged.connect(self.update_command_preview)
         
+        # Stylesheet padding does not reach the spin box's inner line edit, so indent the text here.
+        for spin in (self.spin_width, self.spin_height):
+            spin.findChild(QLineEdit).setTextMargins(10, 0, 0, 0)
+
         dim_layout.addWidget(self.spin_width)
         dim_layout.addWidget(x_label)
         dim_layout.addWidget(self.spin_height)
@@ -196,14 +203,14 @@ class EditorPanel(QWidget):
         icon_field_layout.setSpacing(12)
         
         self.input_icon = QLineEdit()
-        self.input_icon.setPlaceholderText("applications-internet ou caminho para arquivo de imagem")
+        self.input_icon.setPlaceholderText(tr("editor.icon_placeholder"))
         self.input_icon.textChanged.connect(self.on_icon_input_changed)
         icon_field_layout.addWidget(self.input_icon)
         
         self.btn_icon_preview = QPushButton()
         self.btn_icon_preview.setObjectName("iconPreviewButton")
         self.btn_icon_preview.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_icon_preview.setToolTip("Clique para selecionar uma imagem...")
+        self.btn_icon_preview.setToolTip(tr("editor.icon_tooltip"))
         self.btn_icon_preview.clicked.connect(self.select_custom_icon)
         icon_field_layout.addWidget(self.btn_icon_preview)
         
@@ -213,25 +220,32 @@ class EditorPanel(QWidget):
         layout.addWidget(card2)
         
         # --- BENTO CARD 3: ISOLAMENTO & AMBIENTE KDE ---
-        card3, card3_layout = create_bento_card("// 03. ISOLAMENTO & AMBIENTE KDE.", hanko_symbol="規")
+        card3, card3_layout = create_bento_card(tr("editor.card_isolation"), hanko_symbol="規")
         
         form3 = QFormLayout()
         form3.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         form3.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         form3.setSpacing(12)
         
-        self.chk_isolated = QCheckBox("Usar Perfil Isolado (sessão, cookies e dados separados)")
+        self.chk_isolated = QCheckBox(tr("editor.isolated"))
         self.chk_isolated.setChecked(True)
         self.chk_isolated.toggled.connect(self.on_isolated_toggled)
         form3.addRow(create_field_label("PROFILE.ISOLATION:"), self.chk_isolated)
+
+        self.lbl_shared_warning = QLabel(tr("editor.shared_warning"))
+        self.lbl_shared_warning.setObjectName("sharedProfileWarning")
+        self.lbl_shared_warning.setWordWrap(True)
+        self.lbl_shared_warning.setStyleSheet("color: #E63946; font-size: 11px;")
+        self.lbl_shared_warning.setVisible(False)
+        form3.addRow("", self.lbl_shared_warning)
         
         self.input_userdata = QLineEdit()
-        self.input_userdata.setPlaceholderText("Calculado automaticamente")
+        self.input_userdata.setPlaceholderText(tr("editor.auto"))
         self.input_userdata.textChanged.connect(self.on_userdata_edited)
         form3.addRow(create_field_label("PROFILE.PATH:"), self.input_userdata)
         
         self.input_class = QLineEdit()
-        self.input_class.setPlaceholderText("Calculado automaticamente (Wayland App ID / WM_CLASS)")
+        self.input_class.setPlaceholderText(tr("editor.auto_class"))
         self.input_class.textChanged.connect(self.on_class_edited)
         form3.addRow(create_field_label("WM_CLASS:"), self.input_class)
         
@@ -239,7 +253,7 @@ class EditorPanel(QWidget):
         layout.addWidget(card3)
         
         # --- BENTO CARD 4: COMANDO GERADO / EXECUÇÃO ---
-        card4, card4_layout = create_bento_card("// 04. COMANDO DE EXECUÇÃO.", hanko_symbol="執")
+        card4, card4_layout = create_bento_card(tr("editor.card_command"), hanko_symbol="執")
         
         cmd_wrapper = QWidget()
         cmd_wrapper.setObjectName("commandContainer")
@@ -269,18 +283,18 @@ class EditorPanel(QWidget):
         action_layout.setSpacing(12)
         action_layout.setContentsMargins(0, 10, 0, 10)
         
-        self.btn_test = QPushButton("TESTAR EXECUÇÃO.")
+        self.btn_test = QPushButton(tr("editor.test"))
         self.btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_test.clicked.connect(self.test_run)
         action_layout.addWidget(self.btn_test)
         
-        self.btn_save = QPushButton("SALVAR WEBAPP.")
+        self.btn_save = QPushButton(tr("editor.save"))
         self.btn_save.setObjectName("btnPrimary")
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_save.clicked.connect(self.save_webapp)
         action_layout.addWidget(self.btn_save)
         
-        self.btn_discard = QPushButton("DESCARTAR.")
+        self.btn_discard = QPushButton(tr("editor.discard"))
         self.btn_discard.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_discard.clicked.connect(self.discard_changes)
         self.btn_discard.setEnabled(False)
@@ -288,7 +302,7 @@ class EditorPanel(QWidget):
         
         action_layout.addStretch()
         
-        self.btn_delete = QPushButton("EXCLUIR.")
+        self.btn_delete = QPushButton(tr("editor.delete"))
         self.btn_delete.setObjectName("btnDanger")
         self.btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_delete.clicked.connect(self.delete_webapp)
@@ -302,13 +316,14 @@ class EditorPanel(QWidget):
 
     def on_isolated_toggled(self, checked: bool) -> None:
         self.input_userdata.setEnabled(checked)
+        self.lbl_shared_warning.setVisible(not checked)
         self.update_command_preview()
 
     def load_webapp(self, webapp: Webapp) -> None:
         """Loads a webapp's configurations into the fields."""
         self.current_webapp = webapp
         self.current_filepath = webapp.filepath
-        self.header_title.setText(f"EDITAR: {webapp.name.upper()}.")
+        self.header_title.setText(tr("editor.title_edit", name=webapp.name.upper()))
         
         self.input_name.blockSignals(True)
         self.input_url.blockSignals(True)
@@ -332,6 +347,7 @@ class EditorPanel(QWidget):
         self.input_icon.setText(webapp.icon)
         self.chk_isolated.setChecked(webapp.isolated_profile)
         self.input_userdata.setEnabled(webapp.isolated_profile)
+        self.lbl_shared_warning.setVisible(not webapp.isolated_profile)
         
         expanded_ud = os.path.expandvars(os.path.expanduser(webapp.user_data_dir))
         self.input_userdata.setText(expanded_ud)
@@ -365,7 +381,7 @@ class EditorPanel(QWidget):
         self.custom_icon_path = None
         self.current_webapp = Webapp(name="", url="", browser="", width=1024, height=768, isolated_profile=True)
         
-        self.header_title.setText("CRIAR NOVO WEBAPP.")
+        self.header_title.setText(tr("editor.title_new"))
         
         self.input_name.blockSignals(True)
         self.input_url.blockSignals(True)
@@ -382,6 +398,7 @@ class EditorPanel(QWidget):
         self.input_icon.setText("")
         self.chk_isolated.setChecked(True)
         self.input_userdata.setEnabled(True)
+        self.lbl_shared_warning.setVisible(False)
         self.input_userdata.setText("")
         self.input_class.setText("")
         
@@ -439,6 +456,9 @@ class EditorPanel(QWidget):
 
     def on_browser_changed(self) -> None:
         browser_cmd = self.combo_browser.currentData() or ""
+        if self.current_webapp and not self.combo_browser.signalsBlocked():
+            # The pinned profile belongs to the previous browser.
+            self.current_webapp.profile_directory = ""
         slug = re.sub(r'[^a-zA-Z0-9]', '_', self.input_name.text().lower())
         
         if not self.is_modifying_userdata:
@@ -472,8 +492,8 @@ class EditorPanel(QWidget):
 
     def select_custom_icon(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Webapp Icon", "",
-            "Images (*.png *.svg *.jpg *.jpeg *.ico);;All Files (*)"
+            self, tr("editor.icon_dialog"), "",
+            f"{tr('editor.images')} (*.png *.svg *.jpg *.jpeg *.ico);;{tr('common.all_files')} (*)"
         )
         if file_path:
             self.custom_icon_path = file_path
@@ -494,9 +514,15 @@ class EditorPanel(QWidget):
             if not icon.isNull():
                 pixmap = icon.pixmap(48, 48)
                 
-        rounded = get_rounded_pixmap(pixmap, radius=8)
+        rounded = get_rounded_pixmap(pixmap, radius=6)
         self.btn_icon_preview.setIcon(QIcon(rounded))
-        self.btn_icon_preview.setIconSize(QSize(40, 40))
+        self.btn_icon_preview.setIconSize(QSize(26, 26))
+
+    def get_profile_directory(self) -> str:
+        if self.chk_isolated.isChecked():
+            return ""
+        pinned = self.current_webapp.profile_directory if self.current_webapp else ""
+        return pinned or BrowserDetector.detect_last_used_profile(self.combo_browser.currentData() or "")
 
     def get_built_command(self) -> str:
         browser_cmd = self.combo_browser.currentData() or "google-chrome-stable"
@@ -515,7 +541,8 @@ class EditorPanel(QWidget):
             height=height,
             user_data_dir=user_data,
             wm_class=wm_class,
-            isolated_profile=isolated
+            isolated_profile=isolated,
+            profile_directory=self.get_profile_directory()
         )
         return temp_app.exec_line
 
@@ -564,7 +591,7 @@ class EditorPanel(QWidget):
         isolated = self.chk_isolated.isChecked()
         
         if not url or url == "https://...":
-            QMessageBox.warning(self, "Warning", "Please enter a valid URL first.")
+            QMessageBox.warning(self, tr("common.warning"), tr("editor.invalid_url"))
             return
             
         if isolated:
@@ -578,14 +605,15 @@ class EditorPanel(QWidget):
             height=height,
             user_data_dir=user_data,
             wm_class=wm_class,
-            isolated_profile=isolated
+            isolated_profile=isolated,
+            profile_directory=self.get_profile_directory()
         )
         
         try:
             args = shlex.split(temp_app.exec_line)
             subprocess.Popen(args, start_new_session=True)
         except Exception as e:
-            QMessageBox.critical(self, "Error Launching", f"Failed to execute browser:\n{e}")
+            QMessageBox.critical(self, tr("editor.launch_error_title"), tr("editor.launch_error", error=e))
 
     def save_webapp(self) -> None:
         name = self.input_name.text().strip()
@@ -593,15 +621,15 @@ class EditorPanel(QWidget):
         browser_cmd = self.combo_browser.currentData()
         
         if not name:
-            QMessageBox.warning(self, "Warning", "Please fill in the App Name.")
+            QMessageBox.warning(self, tr("common.warning"), tr("editor.missing_name"))
             self.input_name.setFocus()
             return
         if not url or url == "https://...":
-            QMessageBox.warning(self, "Warning", "Please fill in the Site URL.")
+            QMessageBox.warning(self, tr("common.warning"), tr("editor.missing_url"))
             self.input_url.setFocus()
             return
         if not browser_cmd:
-            QMessageBox.warning(self, "Warning", "No valid Chromium browser selected.")
+            QMessageBox.warning(self, tr("common.warning"), tr("editor.no_browser"))
             return
 
         width = self.spin_width.value()
@@ -665,12 +693,12 @@ class EditorPanel(QWidget):
             DesktopManager().create_entry(self.current_webapp)
             KWinRuleManager.add_rule(self.current_webapp)
             
-            QMessageBox.information(self, "Success", f"Webapp '{name}' saved successfully!")
+            QMessageBox.information(self, tr("common.success"), tr("editor.saved", name=name))
             
             self.webapp_saved.emit(self.current_webapp)
             self.load_webapp(self.current_webapp)
         except Exception as e:
-            QMessageBox.critical(self, "Error Saving", f"Failed to save .desktop file:\n{e}")
+            QMessageBox.critical(self, tr("editor.save_error_title"), tr("editor.save_error", error=e))
 
     def delete_webapp(self) -> None:
         if not self.current_filepath:
@@ -678,8 +706,8 @@ class EditorPanel(QWidget):
             
         name = self.input_name.text()
         confirm = QMessageBox.question(
-            self, "Confirm Delete",
-            f"Are you sure you want to delete the webapp '{name}'?\nThis will remove the shortcut from the KDE menu.",
+            self, tr("editor.delete_title"),
+            tr("editor.delete_confirm", name=name),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -692,9 +720,9 @@ class EditorPanel(QWidget):
                 KWinRuleManager.remove_rule(desktop_file_basename)
                 DesktopManager().delete_entry(self.current_filepath)
                 
-                QMessageBox.information(self, "Success", f"Webapp '{name}' deleted.")
+                QMessageBox.information(self, tr("common.success"), tr("editor.deleted", name=name))
                 
                 self.new_webapp()
                 self.webapp_deleted.emit()
             except Exception as e:
-                QMessageBox.critical(self, "Error Deleting", f"Failed to delete the shortcut:\n{e}")
+                QMessageBox.critical(self, tr("editor.delete_error_title"), tr("editor.delete_error", error=e))

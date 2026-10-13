@@ -53,3 +53,38 @@ class TestDesktopManager(unittest.TestCase):
             # Load list again
             loaded_list_after_delete = dm.load_all_entries(browsers=[("Chromium", "chromium")])
             self.assertEqual(len(loaded_list_after_delete), 0)
+
+    def test_shared_profile_is_pinned_and_reloaded(self):
+        with patch("webapp_manager.desktop_manager.APPLICATIONS_DIR", self.test_dir), \
+             patch("webapp_manager.desktop_manager.BrowserDetector.detect_last_used_profile", return_value="Profile 2"):
+            webapp = Webapp(
+                name="Shared App",
+                url="https://shared.example.com",
+                browser="google-chrome-stable",
+                isolated_profile=False,
+                filepath=os.path.join(self.test_dir, "webapp_shared_app.desktop")
+            )
+            dm = DesktopManager()
+            dm.create_entry(webapp)
+
+            with open(webapp.filepath) as f:
+                content = f.read()
+            self.assertIn('--profile-directory="Profile 2"', content)
+            self.assertIn("StartupWMClass=chrome-shared.example.com__-Profile_2", content)
+
+            loaded = dm.load_all_entries(browsers=[("Google Chrome", "google-chrome-stable")])[0]
+            self.assertEqual(loaded.profile_directory, "Profile 2")
+            self.assertFalse(loaded.is_dirty)
+
+
+class TestBrowserProfileDetection(unittest.TestCase):
+    def test_reads_last_used_profile_from_local_state(self):
+        from webapp_manager.browser_detector import BrowserDetector
+        with tempfile.TemporaryDirectory() as home:
+            config = os.path.join(home, ".config", "BraveSoftware", "Brave-Browser")
+            os.makedirs(config)
+            with open(os.path.join(config, "Local State"), "w") as f:
+                f.write('{"profile": {"last_used": "Profile 3"}}')
+            with patch.dict(os.environ, {"HOME": home}):
+                self.assertEqual(BrowserDetector.detect_last_used_profile("brave"), "Profile 3")
+                self.assertEqual(BrowserDetector.detect_last_used_profile("google-chrome-stable"), "Default")

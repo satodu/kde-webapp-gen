@@ -6,6 +6,7 @@ import configparser
 from typing import List, Dict, Tuple, Any
 from webapp_manager.constants import APPLICATIONS_DIR
 from webapp_manager.models import Webapp
+from webapp_manager.browser_detector import BrowserDetector
 
 class DesktopManager:
     _instance = None
@@ -25,6 +26,9 @@ class DesktopManager:
 
     def create_entry(self, webapp: Webapp) -> None:
         """Writes the .desktop file with all necessary KDE webapp keys from a Webapp instance."""
+        # Without a pinned profile the browser opens its last used one, so the app_id (and icon) would drift.
+        if not webapp.isolated_profile and not webapp.profile_directory:
+            webapp.profile_directory = BrowserDetector.detect_last_used_profile(webapp.browser)
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str
         config['Desktop Entry'] = {
@@ -43,7 +47,8 @@ class DesktopManager:
             'X-KDE-Webapp-Height': str(webapp.height),
             'X-KDE-Webapp-UserDataDir': webapp.user_data_dir,
             'X-KDE-Webapp-Class': webapp.wm_class,
-            'X-KDE-Webapp-Isolated': 'true' if webapp.isolated_profile else 'false'
+            'X-KDE-Webapp-Isolated': 'true' if webapp.isolated_profile else 'false',
+            'X-KDE-Webapp-Profile': webapp.profile_directory
         }
         
         with open(webapp.filepath, 'w') as f:
@@ -89,6 +94,7 @@ class DesktopManager:
                         wm_class = entry.get('X-KDE-Webapp-Class', '')
                         
                         exec_line = entry.get('Exec', '')
+                        profile_directory = entry.get('X-KDE-Webapp-Profile', '')
                         if 'X-KDE-Webapp-Isolated' in entry:
                             isolated_profile = entry.get('X-KDE-Webapp-Isolated') == 'true'
                         else:
@@ -127,6 +133,9 @@ class DesktopManager:
                             class_match = re.search(r'--class=["\']?([^\s"\']+)["\']?', exec_line)
                             if class_match:
                                 wm_class = class_match.group(1)
+
+                            profile_match = re.search(r'--profile-directory=(?:"([^"]+)"|(\S+))', exec_line)
+                            profile_directory = (profile_match.group(1) or profile_match.group(2)) if profile_match else ""
                                 
                             # Parse Browser
                             first_part = exec_line.split('--')[0].strip()
@@ -151,7 +160,8 @@ class DesktopManager:
                             wm_class=wm_class,
                             icon=entry.get('Icon', ''),
                             filepath=filepath,
-                            isolated_profile=isolated_profile
+                            isolated_profile=isolated_profile,
+                            profile_directory=profile_directory
                         )
                         app._saved_memento = app.create_memento()
                         webapps.append(app)
