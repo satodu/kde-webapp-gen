@@ -53,6 +53,15 @@ class TestGUI(unittest.TestCase):
         self.assertEqual(item_alpha.data(Qt.ItemDataRole.UserRole).name, "Alpha App")
         self.assertEqual(item_beta.data(Qt.ItemDataRole.UserRole).name, "Beta App")
 
+    def test_menu_bar_has_file_and_help_menus(self):
+        menus = {
+            action.text().replace("&", ""): [a.text().replace("&", "") for a in action.menu().actions() if a.text()]
+            for action in self.window.menuBar().actions()
+        }
+        self.assertIn("Importar webapps...", menus["Arquivo"])
+        self.assertIn("Exportar webapps...", menus["Arquivo"])
+        self.assertIn("Sobre o KDE Webapp Manager", menus["Ajuda"])
+
     def test_new_webapp_clears_fields(self):
         # Click new webapp
         self.window.sidebar.on_new_webapp_clicked()

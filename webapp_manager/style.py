@@ -40,6 +40,51 @@ QSplitter::handle:hover {
     background-color: #3b82f6;
 }
 
+/* Top Menu Bar */
+QMenuBar {
+    background-color: #0d1217;
+    border-bottom: 1px solid rgba(222, 223, 215, 0.08);
+    padding: 2px 8px;
+    font-size: 12px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    color: #7e8790;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected, QMenuBar::item:pressed {
+    background-color: #1c242c;
+    color: #dedfd7;
+}
+
+QMenu {
+    background-color: #14171f;
+    border: 1px solid rgba(222, 223, 215, 0.08);
+    border-radius: 6px;
+    padding: 4px;
+    font-size: 12px;
+}
+
+QMenu::item {
+    color: #dedfd7;
+    padding: 6px 28px 6px 14px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background-color: rgba(37, 99, 235, 0.18);
+    color: #ffffff;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: rgba(222, 223, 215, 0.08);
+    margin: 4px 8px;
+}
+
 QScrollArea {
     border: none;
     background-color: transparent;
