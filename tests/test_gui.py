@@ -3,6 +3,7 @@ import os
 from unittest.mock import patch, MagicMock
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from webapp_manager import i18n
 from webapp_manager.gui import MainWindow
 from webapp_manager.models import Webapp
 
@@ -40,6 +41,9 @@ class TestGUI(unittest.TestCase):
         self.mock_dm.load_all_entries.return_value = [self.app1, self.app2]
         mock_dm_class.return_value = self.mock_dm
 
+        i18n.set_language("en")
+        self.addCleanup(i18n.set_language, "en")
+
         # Create window
         self.window = MainWindow()
 
@@ -53,14 +57,29 @@ class TestGUI(unittest.TestCase):
         self.assertEqual(item_alpha.data(Qt.ItemDataRole.UserRole).name, "Alpha App")
         self.assertEqual(item_beta.data(Qt.ItemDataRole.UserRole).name, "Beta App")
 
-    def test_menu_bar_has_file_and_help_menus(self):
-        menus = {
+    def menu_texts(self):
+        return {
             action.text().replace("&", ""): [a.text().replace("&", "") for a in action.menu().actions() if a.text()]
             for action in self.window.menuBar().actions()
         }
-        self.assertIn("Importar webapps...", menus["Arquivo"])
-        self.assertIn("Exportar webapps...", menus["Arquivo"])
-        self.assertIn("Sobre o KDE Webapp Manager", menus["Ajuda"])
+
+    def test_menu_bar_has_file_and_help_menus(self):
+        menus = self.menu_texts()
+        self.assertIn("Import webapps...", menus["File"])
+        self.assertIn("Export webapps...", menus["File"])
+        self.assertIn("About KDE Webapp Manager", menus["Help"])
+
+    @patch("webapp_manager.gui.get_settings")
+    @patch("webapp_manager.widgets.sidebar.DesktopManager")
+    def test_change_language_rebuilds_ui(self, mock_dm_class, mock_settings):
+        mock_dm_class.return_value = self.mock_dm
+
+        self.window.change_language("pt")
+
+        mock_settings.return_value.setValue.assert_called_with("language", "pt")
+        self.assertIn("Importar webapps...", self.menu_texts()["Arquivo"])
+        self.assertEqual(self.window.editor.header_title.text(), "CRIAR NOVO WEBAPP.")
+        self.assertEqual(self.window.sidebar.list_widget.count(), 2)
 
     def test_new_webapp_clears_fields(self):
         # Click new webapp

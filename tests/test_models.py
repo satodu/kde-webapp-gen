@@ -107,3 +107,27 @@ class TestWebappModels(unittest.TestCase):
             browser="microsoft-edge-stable"
         )
         self.assertEqual(webapp3.get_real_wm_class(), "msedge-gemini.google.com__app-Default")
+
+        # Chromium uses the 'chrome' app_id prefix, like Google Chrome
+        webapp_chromium = Webapp(
+            name="YouTube",
+            url="https://www.youtube.com",
+            browser="chromium"
+        )
+        self.assertEqual(webapp_chromium.get_real_wm_class(), "chrome-www.youtube.com__-Default")
+
+    def test_shared_profile_pins_profile_directory(self):
+        webapp = Webapp(
+            name="YouTube",
+            url="https://www.youtube.com",
+            browser="google-chrome-stable",
+            isolated_profile=False,
+            profile_directory="Profile 1"
+        )
+        self.assertEqual(webapp.get_real_wm_class(), "chrome-www.youtube.com__-Profile_1")
+        self.assertTrue(webapp.exec_line.endswith('--app=https://www.youtube.com --profile-directory="Profile 1"'))
+
+        # Isolated profiles always run as 'Default', whatever was pinned before
+        webapp.isolated_profile = True
+        self.assertEqual(webapp.get_real_wm_class(), "chrome-www.youtube.com__-Default")
+        self.assertNotIn("--profile-directory", webapp.exec_line)

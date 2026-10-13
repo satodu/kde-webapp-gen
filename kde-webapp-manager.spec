@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('webapp_manager/*.png', 'webapp_manager')],
+    datas=[('webapp_manager/*.png', 'webapp_manager'), ('webapp_manager/*.svg', 'webapp_manager'), ('webapp_manager/i18n/*.json', 'webapp_manager/i18n')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -14,7 +14,8 @@ class WebappMemento:
         user_data_dir: str,
         wm_class: str,
         icon: str,
-        isolated_profile: bool = True
+        isolated_profile: bool = True,
+        profile_directory: str = ""
     ) -> None:
         self.name = name
         self.url = url
@@ -25,6 +26,7 @@ class WebappMemento:
         self.wm_class = wm_class
         self.icon = icon
         self.isolated_profile = isolated_profile
+        self.profile_directory = profile_directory
 
 class Webapp:
     def __init__(
@@ -38,7 +40,8 @@ class Webapp:
         wm_class: str = "",
         icon: str = "",
         filepath: str = "",
-        isolated_profile: bool = True
+        isolated_profile: bool = True,
+        profile_directory: str = ""
     ) -> None:
         self.name = name.strip()
         self.url = url.strip()
@@ -46,6 +49,8 @@ class Webapp:
         self.width = width
         self.height = height
         self.isolated_profile = isolated_profile
+        # Browser profile folder pinned for shared-profile webapps (e.g. "Profile 1").
+        self.profile_directory = profile_directory.strip()
         
         # Heuristics for default values if not supplied
         self.user_data_dir = user_data_dir.strip() if user_data_dir else self.generate_default_user_data_dir()
@@ -95,7 +100,7 @@ class Webapp:
             sub_prefix = "chrome"
         elif "org.chromium.chromium" in cmd_lower:
             main_prefix = "org.chromium.Chromium"
-            sub_prefix = "chromium"
+            sub_prefix = "chrome"
         elif "com.microsoft.edge" in cmd_lower:
             main_prefix = "com.microsoft.Edge"
             sub_prefix = "msedge"
@@ -110,7 +115,7 @@ class Webapp:
             sub_prefix = "msedge"
         elif "chromium" in cmd_lower:
             main_prefix = "chromium-browser"
-            sub_prefix = "chromium"
+            sub_prefix = "chrome"
         elif "vivaldi" in cmd_lower:
             main_prefix = "vivaldi-stable"
             sub_prefix = "vivaldi"
@@ -136,7 +141,13 @@ class Webapp:
         path_clean = path.replace("/", "_")
         
         _, sub_prefix = self.get_browser_prefixes()
-        return f"{sub_prefix}-{domain}_{path_clean}-Default"
+        return f"{sub_prefix}-{domain}_{path_clean}-{self.get_profile_suffix()}"
+
+    def get_profile_suffix(self) -> str:
+        """Profile part of the app_id: isolated profiles always use 'Default', shared ones the pinned folder."""
+        if self.isolated_profile or not self.profile_directory:
+            return "Default"
+        return self.profile_directory.replace(" ", "_")
 
     @property
     def exec_line(self) -> str:
@@ -148,6 +159,9 @@ class Webapp:
         if self.isolated_profile and self.user_data_dir:
             resolved_ud = os.path.expandvars(os.path.expanduser(self.user_data_dir))
             exec_str += f" --user-data-dir={resolved_ud}"
+        elif not self.isolated_profile and self.profile_directory:
+            profile = self.profile_directory
+            exec_str += f' --profile-directory="{profile}"' if " " in profile else f" --profile-directory={profile}"
         return exec_str
 
     def create_memento(self) -> WebappMemento:
@@ -161,7 +175,8 @@ class Webapp:
             user_data_dir=self.user_data_dir,
             wm_class=self.wm_class,
             icon=self.icon,
-            isolated_profile=self.isolated_profile
+            isolated_profile=self.isolated_profile,
+            profile_directory=self.profile_directory
         )
 
     def restore(self, memento: Optional[WebappMemento]) -> None:
@@ -177,6 +192,7 @@ class Webapp:
         self.wm_class = memento.wm_class
         self.icon = memento.icon
         self.isolated_profile = memento.isolated_profile
+        self.profile_directory = memento.profile_directory
 
     @property
     def is_dirty(self) -> bool:
@@ -192,4 +208,5 @@ class Webapp:
                 self.user_data_dir != m.user_data_dir or
                 self.wm_class != m.wm_class or
                 self.icon != m.icon or
-                self.isolated_profile != m.isolated_profile)
+                self.isolated_profile != m.isolated_profile or
+                self.profile_directory != m.profile_directory)
