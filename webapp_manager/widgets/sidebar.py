@@ -99,20 +99,6 @@ class SidebarPanel(QWidget):
         self.btn_new.setObjectName("btnPrimary")
         self.btn_new.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_new.clicked.connect(self.on_new_webapp_clicked)
-        
-        self.btn_import = QPushButton("IMPORTAR")
-        self.btn_import.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_import.clicked.connect(self.on_import_clicked)
-
-        self.btn_export = QPushButton("EXPORTAR")
-        self.btn_export.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_export.clicked.connect(self.on_export_clicked)
-
-        transfer_layout = QHBoxLayout()
-        transfer_layout.setContentsMargins(16, 4, 16, 0)
-        transfer_layout.addWidget(self.btn_import)
-        transfer_layout.addWidget(self.btn_export)
-        layout.addLayout(transfer_layout)
 
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(16, 4, 16, 4)

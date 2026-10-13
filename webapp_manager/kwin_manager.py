@@ -77,11 +77,11 @@ class KWinRuleManager:
             # Notify KWin to reload rules (try qdbus, qdbus6, then dbus-send)
             try:
                 if shutil.which("qdbus"):
-                    subprocess.run(["qdbus", "org.kde.KWin", "/KWin", "reconfigure"], check=False)
+                    subprocess.run(["qdbus", "org.kde.KWin", "/KWin", "reconfigure"], check=False, stderr=subprocess.DEVNULL)
                 elif shutil.which("qdbus6"):
-                    subprocess.run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], check=False)
+                    subprocess.run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], check=False, stderr=subprocess.DEVNULL)
                 elif shutil.which("dbus-send"):
-                    subprocess.run(["dbus-send", "--session", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"], check=False)
+                    subprocess.run(["dbus-send", "--session", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"], check=False, stderr=subprocess.DEVNULL)
             except Exception as dbus_err:
                 print(f"Failed to notify KWin via DBus (rules are saved but not reloaded dynamically): {dbus_err}")
         except Exception as e:
@@ -128,11 +128,11 @@ class KWinRuleManager:
                 # Notify KWin to reload rules (try qdbus, qdbus6, then dbus-send)
                 try:
                     if shutil.which("qdbus"):
-                        subprocess.run(["qdbus", "org.kde.KWin", "/KWin", "reconfigure"], check=False)
+                        subprocess.run(["qdbus", "org.kde.KWin", "/KWin", "reconfigure"], check=False, stderr=subprocess.DEVNULL)
                     elif shutil.which("qdbus6"):
-                        subprocess.run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], check=False)
+                        subprocess.run(["qdbus6", "org.kde.KWin", "/KWin", "reconfigure"], check=False, stderr=subprocess.DEVNULL)
                     elif shutil.which("dbus-send"):
-                        subprocess.run(["dbus-send", "--session", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"], check=False)
+                        subprocess.run(["dbus-send", "--session", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure"], check=False, stderr=subprocess.DEVNULL)
                 except Exception as dbus_err:
                     print(f"Failed to notify KWin via DBus: {dbus_err}")
             except Exception as e:

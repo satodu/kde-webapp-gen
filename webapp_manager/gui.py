@@ -2,13 +2,14 @@ import os
 import sys
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QUrl, qVersion, PYQT_VERSION_STR
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QSplitter, QScrollArea,
-    QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect
+    QHBoxLayout, QVBoxLayout, QGraphicsOpacityEffect, QMessageBox
 )
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QKeySequence, QDesktopServices
 
+from webapp_manager.constants import APP_NAME, APP_VERSION, APP_AUTHOR, APP_AUTHOR_URL, APP_REPO_URL
 from webapp_manager.utils import get_app_logo_pixmap
 from webapp_manager.browser_detector import BrowserDetector
 from webapp_manager.style import DARK_THEME_QSS
@@ -126,6 +127,8 @@ class MainWindow(QMainWindow):
         self.editor.webapp_saved.connect(self.sidebar.on_webapp_saved)
         self.editor.webapp_deleted.connect(self.sidebar.on_webapp_deleted)
         self.editor.webapp_changed.connect(self.sidebar.on_webapp_changed)
+
+        self.init_menu()
         
         # Smooth window entrance animation
         self.window_opacity_effect = QGraphicsOpacityEffect(central_widget)
@@ -137,6 +140,73 @@ class MainWindow(QMainWindow):
         self.window_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.window_anim.finished.connect(lambda: central_widget.setGraphicsEffect(None))
         self.window_anim.start()
+
+    def init_menu(self) -> None:
+        menu_bar = self.menuBar()
+
+        file_menu = menu_bar.addMenu("&Arquivo")
+
+        action_new = QAction("&Novo webapp", self)
+        action_new.setShortcut(QKeySequence.StandardKey.New)
+        action_new.triggered.connect(self.sidebar.on_new_webapp_clicked)
+        file_menu.addAction(action_new)
+
+        file_menu.addSeparator()
+
+        action_import = QAction("&Importar webapps...", self)
+        action_import.setShortcut(QKeySequence("Ctrl+I"))
+        action_import.triggered.connect(self.sidebar.on_import_clicked)
+        file_menu.addAction(action_import)
+
+        action_export = QAction("&Exportar webapps...", self)
+        action_export.setShortcut(QKeySequence("Ctrl+E"))
+        action_export.triggered.connect(self.sidebar.on_export_clicked)
+        file_menu.addAction(action_export)
+
+        file_menu.addSeparator()
+
+        action_quit = QAction("&Sair", self)
+        action_quit.setShortcut(QKeySequence.StandardKey.Quit)
+        action_quit.triggered.connect(self.close)
+        file_menu.addAction(action_quit)
+
+        help_menu = menu_bar.addMenu("A&juda")
+
+        action_repo = QAction("Projeto no &GitHub", self)
+        action_repo.triggered.connect(lambda: QDesktopServices.openUrl(QUrl(APP_REPO_URL)))
+        help_menu.addAction(action_repo)
+
+        help_menu.addSeparator()
+
+        action_about = QAction(f"&Sobre o {APP_NAME}", self)
+        action_about.triggered.connect(self.show_about)
+        help_menu.addAction(action_about)
+
+    def show_about(self) -> None:
+        text = (
+            f"<h3>{APP_NAME} <small>v{APP_VERSION}</small></h3>"
+            "<p>Crie e gerencie webapps no KDE Plasma usando navegadores Chromium: "
+            "atalhos <code>.desktop</code>, ícones, perfis isolados e regras do KWin "
+            "para cada aplicação, com importação e exportação em JSON.</p>"
+            f"<p>Criado por <a href='{APP_AUTHOR_URL}'>{APP_AUTHOR}</a>.</p>"
+            f"<p>Código-fonte: <a href='{APP_REPO_URL}'>{APP_REPO_URL}</a></p>"
+            f"<p style='color:#7e8790; font-size:11px;'>Feito com Qt {qVersion()} e PyQt {PYQT_VERSION_STR}.</p>"
+        )
+        box = QMessageBox(self)
+        box.setWindowTitle(f"Sobre o {APP_NAME}")
+        box.setTextFormat(Qt.TextFormat.RichText)
+        box.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        box.setText(text)
+        logo_pixmap = get_app_logo_pixmap()
+        if not logo_pixmap.isNull():
+            box.setIconPixmap(logo_pixmap.scaled(
+                72, 72, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            ))
+        box.addButton(QMessageBox.StandardButton.Ok)
+        btn_about_qt = box.addButton("Sobre o Qt", QMessageBox.ButtonRole.ActionRole)
+        box.exec()
+        if box.clickedButton() is btn_about_qt:
+            QApplication.aboutQt()
 
     def apply_theme(self) -> None:
         """Applies the custom, high-fidelity dark stylesheet with Oriental Brutalist aesthetic."""
@@ -155,6 +225,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(qss)
 
 def main() -> None:
+    os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.wayland.textinput=false")
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
