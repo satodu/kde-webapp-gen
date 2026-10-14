@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QIcon, QPixmap
 from webapp_manager.i18n import tr
-from webapp_manager.constants import APPLICATIONS_DIR, ICONS_DIR, DEFAULT_USER_DATA_BASE
+from webapp_manager.constants import ICONS_DIR, DEFAULT_USER_DATA_BASE
 from webapp_manager.utils import get_rounded_pixmap, migrate_profile_if_needed
 from webapp_manager.desktop_manager import DesktopManager
 from webapp_manager.kwin_manager import KWinRuleManager
@@ -682,8 +682,7 @@ class EditorPanel(QWidget):
             self.current_webapp.isolated_profile = isolated
             
         if not self.current_filepath:
-            app_slug = re.sub(r'[^a-zA-Z0-9]', '_', name.lower())
-            self.current_webapp.filepath = os.path.join(APPLICATIONS_DIR, f"webapp_{app_slug}.desktop")
+            self.current_webapp.filepath = DesktopManager.choose_new_filepath(self.current_webapp)
         else:
             self.current_webapp.filepath = self.current_filepath
 

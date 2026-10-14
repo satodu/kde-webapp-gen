@@ -6,6 +6,7 @@ import binascii
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from webapp_manager.constants import ICONS_DIR
+from webapp_manager.desktop_manager import DesktopManager
 from webapp_manager.i18n import tr
 from webapp_manager.models import Webapp
 
@@ -171,18 +172,21 @@ def load_import_file(path: str) -> List[ImportedWebapp]:
 
 
 def find_conflict(webapp: Webapp, existing: List[Webapp]) -> Optional[Webapp]:
+    # Launchers may be named after the slug or the app_id, so match on the name as well.
     for app in existing:
-        if app.filepath == webapp.filepath:
+        if app.filepath == webapp.filepath or app.get_slug() == webapp.get_slug():
             return app
     return None
 
 
 def unique_name(name: str, existing: List[Webapp]) -> str:
-    taken = {app.filepath for app in existing}
+    taken_paths = {app.filepath for app in existing}
+    taken_slugs = {app.get_slug() for app in existing}
     counter = 2
     while True:
         candidate = Webapp(name=f"{name} ({counter})", url="", browser="")
-        if candidate.filepath not in taken and not os.path.exists(candidate.filepath):
+        if (candidate.get_slug() not in taken_slugs and candidate.filepath not in taken_paths
+                and not os.path.exists(candidate.filepath)):
             return candidate.name
         counter += 1
 
@@ -199,6 +203,7 @@ def resolve_for_install(
     browser = src.browser if src.browser in browser_cmds else fallback_browser
     name = src.name
     user_data_dir = ""
+    filepath = ""
 
     conflict = find_conflict(src, existing)
     if conflict:
@@ -207,10 +212,12 @@ def resolve_for_install(
         if conflict_policy == CONFLICT_RENAME:
             name = unique_name(src.name, existing)
         else:
-            # Keep the existing profile so the user doesn't lose their logged-in session.
+            # Keep the existing profile so the user doesn't lose their logged-in session,
+            # and the existing launcher file so shortcuts pinned to the panel keep working.
             user_data_dir = conflict.user_data_dir
+            filepath = conflict.filepath
 
-    return Webapp(
+    webapp = Webapp(
         name=name,
         url=src.url,
         browser=browser,
@@ -219,8 +226,12 @@ def resolve_for_install(
         user_data_dir=user_data_dir,
         wm_class=src.wm_class if name == src.name else "",
         icon=src.icon,
+        filepath=filepath,
         isolated_profile=src.isolated_profile,
     )
+    if not filepath:
+        webapp.filepath = DesktopManager.choose_new_filepath(webapp)
+    return webapp
 
 
 def write_embedded_icon(webapp: Webapp, imported: ImportedWebapp) -> None:
