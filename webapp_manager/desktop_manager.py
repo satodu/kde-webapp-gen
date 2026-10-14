@@ -24,11 +24,29 @@ class DesktopManager:
         except Exception:
             pass
 
-    def create_entry(self, webapp: Webapp) -> None:
-        """Writes the .desktop file with all necessary KDE webapp keys from a Webapp instance."""
+    @staticmethod
+    def pin_shared_profile(webapp: Webapp) -> None:
         # Without a pinned profile the browser opens its last used one, so the app_id (and icon) would drift.
         if not webapp.isolated_profile and not webapp.profile_directory:
             webapp.profile_directory = BrowserDetector.detect_last_used_profile(webapp.browser)
+
+    @staticmethod
+    def choose_new_filepath(webapp: Webapp) -> str:
+        """Names a new launcher after the window app_id, so compositors match it without KWin rules.
+
+        Falls back to webapp_<slug>.desktop when another launcher already owns that app_id
+        (same site, browser and profile). Existing launchers are never renamed, since that
+        would break shortcuts pinned to the panel.
+        """
+        DesktopManager.pin_shared_profile(webapp)
+        preferred = os.path.join(APPLICATIONS_DIR, f"{webapp.get_real_wm_class()}.desktop")
+        if not os.path.exists(preferred):
+            return preferred
+        return os.path.join(APPLICATIONS_DIR, f"webapp_{webapp.get_slug()}.desktop")
+
+    def create_entry(self, webapp: Webapp) -> None:
+        """Writes the .desktop file with all necessary KDE webapp keys from a Webapp instance."""
+        self.pin_shared_profile(webapp)
         config = configparser.ConfigParser(interpolation=None)
         config.optionxform = str
         config['Desktop Entry'] = {

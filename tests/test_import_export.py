@@ -129,6 +129,20 @@ class TestImportExport(unittest.TestCase):
         self.assertEqual(renamed.name, "Gmail (2)")
         self.assertNotEqual(renamed.filepath, existing[0].filepath)
 
+    def test_conflict_detected_for_app_id_named_launcher(self):
+        existing = [Webapp(name="Gmail", url="https://mail.google.com", browser="chromium",
+                           filepath="/apps/chrome-mail.google.com__-Default.desktop")]
+        imported = import_export.ImportedWebapp(
+            Webapp(name="Gmail", url="https://mail.google.com", browser="chromium")
+        )
+        overwritten = import_export.resolve_for_install(
+            imported, existing, import_export.CONFLICT_OVERWRITE, ["chromium"], "chromium")
+        self.assertEqual(overwritten.filepath, "/apps/chrome-mail.google.com__-Default.desktop")
+
+        renamed = import_export.resolve_for_install(
+            imported, existing, import_export.CONFLICT_RENAME, ["chromium"], "chromium")
+        self.assertEqual(renamed.name, "Gmail (2)")
+
     def test_missing_browser_uses_fallback(self):
         imported = import_export.ImportedWebapp(
             Webapp(name="Teams", url="https://teams.microsoft.com", browser="some-unknown-browser")

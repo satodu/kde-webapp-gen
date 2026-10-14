@@ -77,6 +77,28 @@ class TestDesktopManager(unittest.TestCase):
             self.assertFalse(loaded.is_dirty)
 
 
+    def test_new_launcher_is_named_after_app_id(self):
+        with patch("webapp_manager.desktop_manager.APPLICATIONS_DIR", self.test_dir):
+            webapp = Webapp(name="Shortwave", url="https://app.shortwave.com", browser="vivaldi-stable")
+            path = DesktopManager.choose_new_filepath(webapp)
+            self.assertEqual(path, os.path.join(self.test_dir, "vivaldi-app.shortwave.com__-Default.desktop"))
+
+            # A second webapp for the same site/browser/profile must not overwrite the first launcher
+            webapp.filepath = path
+            DesktopManager().create_entry(webapp)
+            other = Webapp(name="Shortwave Work", url="https://app.shortwave.com/", browser="vivaldi-stable")
+            self.assertEqual(DesktopManager.choose_new_filepath(other),
+                             os.path.join(self.test_dir, "webapp_shortwave_work.desktop"))
+
+    def test_new_shared_launcher_uses_pinned_profile_in_name(self):
+        with patch("webapp_manager.desktop_manager.APPLICATIONS_DIR", self.test_dir), \
+             patch("webapp_manager.desktop_manager.BrowserDetector.detect_last_used_profile", return_value="Profile 1"):
+            webapp = Webapp(name="YouTube", url="https://www.youtube.com", browser="google-chrome-stable",
+                            isolated_profile=False)
+            self.assertEqual(os.path.basename(DesktopManager.choose_new_filepath(webapp)),
+                             "chrome-www.youtube.com__-Profile_1.desktop")
+
+
 class TestBrowserProfileDetection(unittest.TestCase):
     def test_reads_last_used_profile_from_local_state(self):
         from webapp_manager.browser_detector import BrowserDetector
