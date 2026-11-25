@@ -17,6 +17,30 @@ class TestWebappModels(unittest.TestCase):
         self.assertEqual(webapp.user_data_dir, os.path.join(DEFAULT_USER_DATA_BASE, "test_web_app"))
         self.assertEqual(webapp.icon, "applications-internet")
 
+    def test_video_fix_exec_line(self):
+        webapp = Webapp(
+            name="Netflix",
+            url="https://www.netflix.com/br/",
+            browser="google-chrome-stable",
+            user_data_dir="/tmp/netflix",
+            wm_class="netflix",
+            video_fix=True
+        )
+        self.assertEqual(
+            webapp.exec_line,
+            "google-chrome-stable --window-size=1024,768 --class=netflix --disable-gpu-compositing --app=https://www.netflix.com/br/ --user-data-dir=/tmp/netflix"
+        )
+        webapp.video_fix = False
+        self.assertNotIn("--disable-gpu-compositing", webapp.exec_line)
+
+    def test_video_fix_dirty_and_restore(self):
+        webapp = Webapp(name="A", url="https://a.com", browser="chrome")
+        webapp._saved_memento = webapp.create_memento()
+        webapp.video_fix = True
+        self.assertTrue(webapp.is_dirty)
+        webapp.restore(webapp._saved_memento)
+        self.assertFalse(webapp.video_fix)
+
     def test_exec_line_generation(self):
         webapp = Webapp(
             name="Gemini",

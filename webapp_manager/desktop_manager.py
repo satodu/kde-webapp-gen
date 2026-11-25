@@ -4,7 +4,7 @@ import re
 import subprocess
 import configparser
 from typing import List, Dict, Tuple, Any
-from webapp_manager.constants import APPLICATIONS_DIR
+from webapp_manager.constants import APPLICATIONS_DIR, VIDEO_FIX_FLAG
 from webapp_manager.models import Webapp
 from webapp_manager.browser_detector import BrowserDetector
 
@@ -66,7 +66,8 @@ class DesktopManager:
             'X-KDE-Webapp-UserDataDir': webapp.user_data_dir,
             'X-KDE-Webapp-Class': webapp.wm_class,
             'X-KDE-Webapp-Isolated': 'true' if webapp.isolated_profile else 'false',
-            'X-KDE-Webapp-Profile': webapp.profile_directory
+            'X-KDE-Webapp-Profile': webapp.profile_directory,
+            'X-KDE-Webapp-VideoFix': 'true' if webapp.video_fix else 'false'
         }
         
         with open(webapp.filepath, 'w') as f:
@@ -113,6 +114,7 @@ class DesktopManager:
                         
                         exec_line = entry.get('Exec', '')
                         profile_directory = entry.get('X-KDE-Webapp-Profile', '')
+                        video_fix = VIDEO_FIX_FLAG in exec_line
                         if 'X-KDE-Webapp-Isolated' in entry:
                             isolated_profile = entry.get('X-KDE-Webapp-Isolated') == 'true'
                         else:
@@ -146,6 +148,8 @@ class DesktopManager:
                             else:
                                 isolated_profile = False
                                 
+                            video_fix = VIDEO_FIX_FLAG in exec_line
+
                             # Parse Class
                             wm_class = ""
                             class_match = re.search(r'--class=["\']?([^\s"\']+)["\']?', exec_line)
@@ -179,7 +183,8 @@ class DesktopManager:
                             icon=entry.get('Icon', ''),
                             filepath=filepath,
                             isolated_profile=isolated_profile,
-                            profile_directory=profile_directory
+                            profile_directory=profile_directory,
+                            video_fix=video_fix
                         )
                         app._saved_memento = app.create_memento()
                         webapps.append(app)
