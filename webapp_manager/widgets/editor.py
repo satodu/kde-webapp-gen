@@ -239,6 +239,16 @@ class EditorPanel(QWidget):
         self.lbl_shared_warning.setVisible(False)
         form3.addRow("", self.lbl_shared_warning)
         
+        self.chk_video_fix = QCheckBox(tr("editor.video_fix"))
+        self.chk_video_fix.setToolTip(tr("editor.video_fix_tooltip"))
+        self.chk_video_fix.toggled.connect(lambda _checked: self.update_command_preview())
+        form3.addRow(create_field_label("VIDEO.COMPAT:"), self.chk_video_fix)
+
+        self.lbl_video_fix_help = QLabel(tr("editor.video_fix_help"))
+        self.lbl_video_fix_help.setWordWrap(True)
+        self.lbl_video_fix_help.setStyleSheet("color: #8A8A8A; font-size: 11px;")
+        form3.addRow("", self.lbl_video_fix_help)
+
         self.input_userdata = QLineEdit()
         self.input_userdata.setPlaceholderText(tr("editor.auto"))
         self.input_userdata.textChanged.connect(self.on_userdata_edited)
@@ -332,6 +342,7 @@ class EditorPanel(QWidget):
         self.spin_height.blockSignals(True)
         self.input_icon.blockSignals(True)
         self.chk_isolated.blockSignals(True)
+        self.chk_video_fix.blockSignals(True)
         self.input_userdata.blockSignals(True)
         self.input_class.blockSignals(True)
         
@@ -346,6 +357,7 @@ class EditorPanel(QWidget):
         self.spin_height.setValue(webapp.height)
         self.input_icon.setText(webapp.icon)
         self.chk_isolated.setChecked(webapp.isolated_profile)
+        self.chk_video_fix.setChecked(webapp.video_fix)
         self.input_userdata.setEnabled(webapp.isolated_profile)
         self.lbl_shared_warning.setVisible(not webapp.isolated_profile)
         
@@ -365,6 +377,7 @@ class EditorPanel(QWidget):
         self.spin_height.blockSignals(False)
         self.input_icon.blockSignals(False)
         self.chk_isolated.blockSignals(False)
+        self.chk_video_fix.blockSignals(False)
         self.input_userdata.blockSignals(False)
         self.input_class.blockSignals(False)
         
@@ -390,6 +403,7 @@ class EditorPanel(QWidget):
         self.spin_height.blockSignals(True)
         self.input_icon.blockSignals(True)
         self.chk_isolated.blockSignals(True)
+        self.chk_video_fix.blockSignals(True)
         self.input_userdata.blockSignals(True)
         self.input_class.blockSignals(True)
         
@@ -397,6 +411,7 @@ class EditorPanel(QWidget):
         self.input_url.setText("")
         self.input_icon.setText("")
         self.chk_isolated.setChecked(True)
+        self.chk_video_fix.setChecked(False)
         self.input_userdata.setEnabled(True)
         self.lbl_shared_warning.setVisible(False)
         self.input_userdata.setText("")
@@ -415,6 +430,7 @@ class EditorPanel(QWidget):
         self.spin_height.blockSignals(False)
         self.input_icon.blockSignals(False)
         self.chk_isolated.blockSignals(False)
+        self.chk_video_fix.blockSignals(False)
         self.input_userdata.blockSignals(False)
         self.input_class.blockSignals(False)
         
@@ -542,7 +558,8 @@ class EditorPanel(QWidget):
             user_data_dir=user_data,
             wm_class=wm_class,
             isolated_profile=isolated,
-            profile_directory=self.get_profile_directory()
+            profile_directory=self.get_profile_directory(),
+            video_fix=self.chk_video_fix.isChecked()
         )
         return temp_app.exec_line
 
@@ -566,6 +583,7 @@ class EditorPanel(QWidget):
         self.current_webapp.wm_class = self.input_class.text().strip()
         self.current_webapp.icon = self.input_icon.text().strip()
         self.current_webapp.isolated_profile = self.chk_isolated.isChecked()
+        self.current_webapp.video_fix = self.chk_video_fix.isChecked()
         
         self.webapp_changed.emit(self.current_webapp)
         self.btn_discard.setEnabled(self.current_webapp.is_dirty)
@@ -606,7 +624,8 @@ class EditorPanel(QWidget):
             user_data_dir=user_data,
             wm_class=wm_class,
             isolated_profile=isolated,
-            profile_directory=self.get_profile_directory()
+            profile_directory=self.get_profile_directory(),
+            video_fix=self.chk_video_fix.isChecked()
         )
         
         try:
@@ -669,7 +688,8 @@ class EditorPanel(QWidget):
                 wm_class=wm_class,
                 icon=final_icon_value,
                 filepath=self.current_filepath or "",
-                isolated_profile=isolated
+                isolated_profile=isolated,
+                video_fix=self.chk_video_fix.isChecked()
             )
         else:
             self.current_webapp.name = name
@@ -680,6 +700,7 @@ class EditorPanel(QWidget):
             self.current_webapp.user_data_dir = user_data
             self.current_webapp.wm_class = wm_class
             self.current_webapp.isolated_profile = isolated
+            self.current_webapp.video_fix = self.chk_video_fix.isChecked()
             
         if not self.current_filepath:
             self.current_webapp.filepath = DesktopManager.choose_new_filepath(self.current_webapp)

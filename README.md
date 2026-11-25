@@ -27,6 +27,7 @@ It features isolated browser profiles, custom window dimensions, rounded custom 
 - **Smart Legacy Scanner:** Automatically imports and parses manual webapp shortcuts (e.g., created using `kmenuedit`) that run via `--app=`, letting you upgrade and edit them seamlessly.
 - **Isolated Profile Management:** Runs each webapp under a separate, dedicated browser profile (`--user-data-dir`) so you don't share cookies, sessions, or caches with your main browser windows.
 - **Profile Migration Tool:** Automatically detects and migrates session directories previously created inside literal `/home/user/$HOME` folders (due to lack of shell expansion in manual shortcut launchers), keeping your logins intact and your home directory clean.
+- **Black Video Fix (Netflix & DRM players):** Per-webapp checkbox that adds `--disable-gpu-compositing` to the launch command. Enable it when a streaming app plays audio but shows a black screen, which happens with some graphics drivers (notably NVIDIA on Wayland) and protected video. Only GPU compositing is turned off; video decoding stays on the GPU. Leave it off for other sites.
 - **Import / Export (JSON):** Back up or move your webapps between machines through a human-readable `.json` file, picking exactly which webapps to export and import. Custom icons are embedded, profile paths are regenerated on the target machine, and name conflicts can be renamed, overwritten, or skipped.
 - **Integrated Dimensions Editor:** Custom QSpinBox styling with nested up/down arrows and CSS controls for a clean numeric entry.
 - **Wayland Window Rules (KWin Integration):** 
@@ -95,3 +96,17 @@ After running the installer:
 ## License
 
 This project is open-source and available under the MIT License.
+
+---
+
+## Releasing (maintainers)
+
+```bash
+packaging/release.sh 1.3.4
+```
+
+This runs the tests, bumps `APP_VERSION`, commits, tags and pushes, then updates the AUR package. The pushed tag triggers `.github/workflows/release.yml`, which builds the AppImage and attaches it to the GitHub release.
+
+- Build the AppImage locally: `packaging/appimage/build.sh`
+- Publish only to the AUR: `packaging/aur/publish.sh [VERSION]`
+- The AUR step runs locally on purpose: only the maintainer's SSH key can push to it.

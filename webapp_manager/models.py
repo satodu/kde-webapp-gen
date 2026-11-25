@@ -1,7 +1,7 @@
 import os
 import re
 from typing import Tuple, Optional
-from webapp_manager.constants import APPLICATIONS_DIR, DEFAULT_USER_DATA_BASE
+from webapp_manager.constants import APPLICATIONS_DIR, DEFAULT_USER_DATA_BASE, VIDEO_FIX_FLAG
 
 class WebappMemento:
     def __init__(
@@ -15,7 +15,8 @@ class WebappMemento:
         wm_class: str,
         icon: str,
         isolated_profile: bool = True,
-        profile_directory: str = ""
+        profile_directory: str = "",
+        video_fix: bool = False
     ) -> None:
         self.name = name
         self.url = url
@@ -27,6 +28,7 @@ class WebappMemento:
         self.icon = icon
         self.isolated_profile = isolated_profile
         self.profile_directory = profile_directory
+        self.video_fix = video_fix
 
 class Webapp:
     def __init__(
@@ -41,7 +43,8 @@ class Webapp:
         icon: str = "",
         filepath: str = "",
         isolated_profile: bool = True,
-        profile_directory: str = ""
+        profile_directory: str = "",
+        video_fix: bool = False
     ) -> None:
         self.name = name.strip()
         self.url = url.strip()
@@ -51,6 +54,8 @@ class Webapp:
         self.isolated_profile = isolated_profile
         # Browser profile folder pinned for shared-profile webapps (e.g. "Profile 1").
         self.profile_directory = profile_directory.strip()
+        # Black-video workaround: turns off GPU compositing so DRM players (Netflix) render.
+        self.video_fix = video_fix
         
         # Heuristics for default values if not supplied
         self.user_data_dir = user_data_dir.strip() if user_data_dir else self.generate_default_user_data_dir()
@@ -155,6 +160,8 @@ class Webapp:
         exec_str = f"{self.browser} --window-size={self.width},{self.height}"
         if self.wm_class:
             exec_str += f" --class={self.wm_class}"
+        if self.video_fix:
+            exec_str += f" {VIDEO_FIX_FLAG}"
         exec_str += f" --app={self.url}"
         if self.isolated_profile and self.user_data_dir:
             resolved_ud = os.path.expandvars(os.path.expanduser(self.user_data_dir))
@@ -176,7 +183,8 @@ class Webapp:
             wm_class=self.wm_class,
             icon=self.icon,
             isolated_profile=self.isolated_profile,
-            profile_directory=self.profile_directory
+            profile_directory=self.profile_directory,
+            video_fix=self.video_fix
         )
 
     def restore(self, memento: Optional[WebappMemento]) -> None:
@@ -193,6 +201,7 @@ class Webapp:
         self.icon = memento.icon
         self.isolated_profile = memento.isolated_profile
         self.profile_directory = memento.profile_directory
+        self.video_fix = memento.video_fix
 
     @property
     def is_dirty(self) -> bool:
@@ -209,4 +218,5 @@ class Webapp:
                 self.wm_class != m.wm_class or
                 self.icon != m.icon or
                 self.isolated_profile != m.isolated_profile or
-                self.profile_directory != m.profile_directory)
+                self.profile_directory != m.profile_directory or
+                self.video_fix != m.video_fix)

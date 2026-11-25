@@ -54,6 +54,7 @@ def webapp_to_dict(webapp: Webapp) -> Dict[str, Any]:
         "width": webapp.width,
         "height": webapp.height,
         "isolated_profile": webapp.isolated_profile,
+        "video_fix": webapp.video_fix,
         "wm_class": webapp.wm_class,
         "icon": _icon_to_dict(webapp.icon),
     }
@@ -132,6 +133,10 @@ def webapp_from_dict(data: Any, index: int = 0) -> ImportedWebapp:
     if not isinstance(isolated, bool):
         isolated = True
 
+    video_fix = data.get("video_fix", False)
+    if not isinstance(video_fix, bool):
+        video_fix = False
+
     icon_name, icon_ext, icon_data = _parse_icon(data.get("icon"), index)
 
     webapp = Webapp(
@@ -143,6 +148,7 @@ def webapp_from_dict(data: Any, index: int = 0) -> ImportedWebapp:
         wm_class=wm_class,
         icon=icon_name,
         isolated_profile=isolated,
+        video_fix=video_fix,
     )
     return ImportedWebapp(webapp, icon_ext, icon_data)
 
@@ -228,6 +234,7 @@ def resolve_for_install(
         icon=src.icon,
         filepath=filepath,
         isolated_profile=src.isolated_profile,
+        video_fix=src.video_fix,
     )
     if not filepath:
         webapp.filepath = DesktopManager.choose_new_filepath(webapp)
