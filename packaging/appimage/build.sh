@@ -1,8 +1,11 @@
 #!/bin/bash
-# AppImage building script for KDE Webapp Manager v1.0.1
+# AppImage building script for KDE Webapp Manager
 # Requires: pyinstaller (installable via paru/pacman)
 
 set -e
+
+# Always build from the repository root, wherever the script is called from.
+cd "$(dirname "$(readlink -f "$0")")/../.."
 
 echo "=== Starting AppImage Build Process ==="
 
@@ -78,14 +81,14 @@ chmod +x AppDir/AppRun
 echo "Packaging AppDir..."
 if ! command -v appimagetool &> /dev/null; then
     echo "appimagetool not found on system path, downloading portable release..."
-    curl -Lo appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+    curl -fLo appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
     chmod +x appimagetool
-    
-    # Run downloaded appimagetool
-    ./appimagetool AppDir
+
+    # Extract-and-run avoids needing FUSE (absent on CI runners and containers).
+    ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool AppDir
     rm -f appimagetool
 else
-    appimagetool AppDir
+    ARCH=x86_64 appimagetool AppDir
 fi
 
 # Clean temporary folders
